@@ -1,0 +1,11 @@
+{
+  "name": "asiri-panel-workspace",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter asiri-panel-web dev",
+    "build": "pnpm --filter asiri-panel-web build",
+    "start": "pnpm --filter asiri-panel-web start",
+    "typecheck": "pnpm --filter asiri-panel-web typecheck",
+    "test": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --disable-warning=ExperimentalWarning --import ./tests/register.mjs --test \"tests/*.test.ts\""
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "ASiRi panel — پنل کنترل",
+  "short_name": "ASiRi",
+  "description": "رابط وب برای اجرا و مدیریت تونل aether روی سرور (غیر رسمی)",
+  "start_url": "/",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "fa",
+  "background_color": "#090b0e",
+  "theme_color": "#090b0e",
+  "icons": [{ "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }]
+}

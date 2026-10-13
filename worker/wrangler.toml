@@ -1,0 +1,11 @@
+name = "aether-tunnel"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Mock values: replace before deploying. Secrets (if any) belong in `wrangler secret put`, not here.
+[vars]
+ORIGIN = "https://panel.example.com"
+WS_PATH = "/ws/changeme0000"
+TARGET_HOST = "target.example.com"
+TARGET_PORT = "443"
