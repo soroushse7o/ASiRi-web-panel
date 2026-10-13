@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#090b0e">
+<title>ASiRi panel — نمای ایستا</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --background:#090b0e; --surface:#11151a; --surface-2:#181d24; --border:#232a33;
+  --foreground:#e7eaee; --muted:#8b95a3; --accent:#3ddc97; --accent-fg:#04140d;
+  --warn:#f5b84a; --danger:#f26d6d;
+  --accent-a15:rgba(61,220,151,.15); --accent-a10:rgba(61,220,151,.10); --accent-a30:rgba(61,220,151,.30); --accent-a40:rgba(61,220,151,.40);
+  --warn-a10:rgba(245,184,74,.10);
+  --sans:"Vazirmatn",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{color-scheme:dark;-webkit-text-size-adjust:100%}
+body{background:var(--background);color:var(--foreground);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+.app{max-width:42rem;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;gap:1rem;padding:max(1rem,env(safe-area-inset-top)) 1rem max(1.5rem,env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.5rem 0}
+.brand{display:flex;align-items:center;gap:.75rem}
+.brand img{width:36px;height:36px;border-radius:.75rem}
+h1{font-size:1.125rem;font-weight:700;line-height:1.25}
+.tagline{font-size:.75rem;color:var(--muted)}
+main{display:flex;flex-direction:column;gap:1rem}
+.pill{display:inline-flex;align-items:center;gap:.5rem;border:1px solid var(--accent-a30);background:var(--accent-a15);color:var(--accent);border-radius:999px;padding:.375rem .75rem;font-size:.75rem;font-weight:500}
+.dot{width:.5rem;height:.5rem;border-radius:50%;background:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:1.5rem;padding:1rem;display:flex;flex-direction:column;gap:.75rem}
+.card.hero{align-items:center;gap:1.25rem;padding:1.25rem}
+h2{font-size:.875rem;font-weight:600;display:flex;align-items:center;gap:.5rem}
+h3{font-size:.875rem;font-weight:500}
+.ic{width:1rem;height:1rem;flex:none}
+.accent{color:var(--accent)} .muted{color:var(--muted)}
+.xs{font-size:.75rem} .sm{font-size:.875rem} .fw5{font-weight:500}
+.mono{font-family:var(--mono)}
+.col{display:flex;flex-direction:column} .wrap{display:flex;flex-wrap:wrap}
+.gap1{gap:.25rem} .gap2{gap:.5rem} .gap3{gap:.75rem}
+.between{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.base{align-items:baseline}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lead{font-size:.75rem;line-height:1.7;color:var(--muted)}
+/* connection */
+.power{position:relative;margin-top:.5rem;width:9rem;height:9rem;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--accent);background:var(--accent);color:var(--accent-fg);box-shadow:0 0 60px -10px var(--accent)}
+.power .ic{width:3rem;height:3rem}
+.center{display:flex;flex-direction:column;align-items:center;gap:.25rem;text-align:center}
+.title-xl{font-size:1.25rem;font-weight:700}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;width:100%}
+.tile{background:var(--surface-2);border-radius:.75rem;padding:.5rem .75rem}
+.tile.col{display:flex} .tile.between{display:flex}
+dl{display:contents}
+.copyrow{display:flex;align-items:center;justify-content:space-between;gap:.75rem;min-height:2.75rem;width:100%;background:var(--surface-2);border-radius:.75rem;padding:.5rem .75rem}
+.copyrow .v{display:flex;align-items:center;gap:.5rem}
+/* fields */
+.field{display:flex;align-items:center;gap:.5rem;background:var(--surface-2);border-radius:.75rem;padding:.25rem .25rem .25rem .25rem;padding-inline-start:.75rem;min-width:0}
+.fieldtxt{display:flex;flex-direction:column;flex:1;min-width:0}
+.iconbtn{width:2.75rem;height:2.75rem;display:flex;align-items:center;justify-content:center;color:var(--muted);flex:none}
+.relay{border:1px solid var(--border);border-radius:1rem;padding:.75rem;display:flex;flex-direction:column;gap:.5rem}
+.tag{border-radius:999px;padding:.25rem .625rem;font-size:.75rem;background:var(--accent-a10);color:var(--accent);flex:none}
+.tag.warn{background:var(--warn-a10);color:var(--warn)}
+.clientblock{background:var(--surface-2);border-radius:.75rem;padding:.75rem;display:flex;flex-direction:column;gap:.5rem}
+.clientblock pre{font-family:var(--mono);font-size:.75rem;line-height:1.7;white-space:pre-wrap;word-break:break-all;direction:ltr;text-align:left}
+.btn{min-height:2.75rem;display:flex;align-items:center;justify-content:center;gap:.5rem;border-radius:.75rem;padding:0 1rem;font-size:.875rem;font-weight:500;font-family:inherit;border:1px solid transparent;width:100%;cursor:default}
+.btn.primary{background:var(--accent);color:var(--background)}
+.btn.ghost{border-color:var(--accent-a40);background:var(--accent-a10);color:var(--accent)}
+.btn.plain{border-color:var(--border);background:var(--surface-2);color:var(--foreground);font-weight:400}
+.btn.stop{border-color:rgba(242,109,109,.4);background:rgba(242,109,109,.1);color:var(--danger)}
+.note{border-radius:.75rem;padding:.5rem .75rem;font-size:.875rem;direction:ltr;background:var(--accent-a10);color:var(--accent)}
+details{border:1px solid var(--border);border-radius:1rem}
+summary{min-height:2.75rem;display:flex;align-items:center;justify-content:space-between;padding:0 .75rem;font-size:.875rem;font-weight:500;cursor:pointer;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"";width:.5rem;height:.5rem;border-inline-end:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin-inline-start:.75rem;flex:none;transition:transform .15s}
+details[open] summary::after{transform:rotate(-135deg)}
+summary .xs{font-weight:400;margin-inline-start:auto}
+.dbody{display:flex;flex-direction:column;gap:.75rem;border-top:1px solid var(--border);padding:.75rem}
+.input{min-height:2.75rem;width:100%;border:1px solid var(--border);background:var(--surface-2);border-radius:.75rem;padding:0 .75rem;display:flex;align-items:center;font-family:var(--mono);font-size:.875rem;direction:ltr}
+.inrow{display:flex;gap:.5rem}
+.sq{width:2.75rem;height:2.75rem;flex:none;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--surface-2);border-radius:.75rem;color:var(--muted)}
+/* settings */
+.opt{min-height:2.75rem;display:inline-flex;align-items:center;border:1px solid var(--border);background:var(--surface-2);border-radius:.75rem;padding:0 .875rem;font-size:.875rem;opacity:.5}
+.opt.on{border-color:rgba(61,220,151,.5);background:var(--accent-a15);color:var(--accent)}
+.settings{gap:1.25rem}
+.sep{display:flex;flex-direction:column;gap:.75rem;border-top:1px solid var(--border);padding-top:1rem}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:.75rem;min-height:2.75rem;opacity:.5}
+.sw{position:relative;width:3rem;height:1.75rem;border-radius:999px;background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--border);flex:none}
+.sw::after{content:"";position:absolute;top:.25rem;inset-inline-start:.25rem;width:1.25rem;height:1.25rem;border-radius:50%;background:var(--foreground)}
+.sw.on{background:var(--accent)}
+.sw.on::after{inset-inline-start:1.5rem;background:var(--accent-fg)}
+/* progress & results */
+.results{display:flex;flex-direction:column;gap:.25rem;font-size:.75rem;direction:ltr}
+.results li{list-style:none;display:flex;justify-content:space-between;gap:.75rem;background:var(--surface-2);border-radius:.5rem;padding:.375rem .75rem;font-family:var(--mono)}
+/* logs */
+.logbox{direction:ltr;height:18rem;overflow:auto;background:var(--background);border-radius:.75rem;padding:.75rem;font-family:var(--mono);font-size:11px;line-height:1.25rem}
+.logbox p{white-space:pre-wrap;word-break:break-all;color:rgba(231,234,238,.8)}
+.foot{text-align:center;font-size:.75rem;color:var(--muted);padding-top:.5rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <img src="data:image/png;base64,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" alt="" width="36" height="36">
+      <div class="col">
+        <h1>ASiRi</h1>
+        <p class="tagline">پنل کنترل aether (غیر رسمی)</p>
+      </div>
+    </div>
+    <span class="pill" role="status"><span class="dot"></span>متصل</span>
+  </header>
+
+  <main>
+    <!-- اتصال -->
+    <section class="card hero" aria-label="اتصال">
+      <div class="power" role="img" aria-label="متصل"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg></div>
+      <div class="center">
+        <p class="title-xl">متصل</p>
+        <p class="sm muted"><span dir="ltr">MASQUE-in-MASQUE</span> · <span dir="ltr">HTTP/2</span> · <span dir="ltr">turbo</span></p>
+      </div>
+      <dl class="grid2">
+        <div class="tile col gap1"><dt class="xs muted">مدت اتصال</dt><dd class="mono" dir="ltr" style="font-size:1rem">12:34</dd></div>
+        <div class="tile col gap1"><dt class="xs muted">Gateway</dt><dd class="mono sm trunc" dir="ltr">162.159.198.2:443</dd></div>
+      </dl>
+      <div class="copyrow"><span class="xs muted">SOCKS5</span><span class="v mono sm" dir="ltr">127.0.0.1:1819<svg class="ic muted" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span></div>
+    </section>
+
+    <!-- دسترسی از بیرون -->
+    <section class="card" aria-labelledby="share-title">
+      <div class="between" style="align-items:flex-start">
+        <div class="col gap1">
+          <h2 id="share-title"><svg class="ic accent" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>دسترسی از بیرون</h2>
+          <p class="lead">پراکسی را با نام کاربری و رمز روی یک آدرس عمومی منتشر می‌کند تا از گوشی یا کامپیوتر خودتان به آن وصل شوید.</p>
+        </div>
+        <span class="tag">۲ اتصال</span>
+      </div>
+
+      <div class="grid2"><div class="field"><div class="fieldtxt"><span class="xs muted">نام کاربری</span><span class="mono sm trunc" dir="ltr">myuser</span></div><span class="iconbtn"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span></div><div class="field"><div class="fieldtxt"><span class="xs muted">رمز</span><span class="mono sm trunc" dir="ltr">k7Pq2mXv9RtLw4Ne</span></div><span class="iconbtn"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span></div></div>
+
+      <div class="relay">
+        <div class="between"><h3 dir="auto">ASiRi-Railway</h3><span class="tag">فعال</span></div>
+        <div class="grid2"><div class="field"><div class="fieldtxt"><span class="xs muted">سرور</span><span class="mono sm trunc" dir="ltr">relay.example.com</span></div><span class="iconbtn"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span></div><div class="field"><div class="fieldtxt"><span class="xs muted">پورت</span><span class="mono sm trunc" dir="ltr">1080</span></div><span class="iconbtn"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span></div></div>
+        <div class="field"><div class="fieldtxt"><span class="xs muted">Shadowsocks</span><span class="mono sm trunc" dir="ltr">ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTprN1BxMm1YdjlSdEx3NE5l@relay.example.com:1080#ASiRi-Railway</span></div><span class="iconbtn"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span></div>
+        <div class="field"><div class="fieldtxt"><span class="xs muted">SOCKS5 — بدون رمزنگاری</span><span class="mono sm trunc" dir="ltr">socks://bXl1c2VyOms3UHEybVh2OVJ0THc0TmU@relay.example.com:1080#ASiRi-Railway</span></div><span class="iconbtn"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span></div>
+        <span class="btn primary"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>افزودن به تلگرام (یک‌لمسی)</span>
+        <div class="clientblock">
+          <div class="between"><span class="xs muted">بلوک آماده‌ی کلاینت</span><span class="xs muted" style="display:flex;align-items:center;gap:.5rem"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>کپی همه</span></div>
+          <pre>Server:   relay.example.com
+Port:     1080
+Username: myuser
+Password: k7Pq2mXv9RtLw4Ne</pre>
+        </div>
+      </div>
+
+      <div class="relay">
+        <div class="between"><h3 dir="auto">ASiRi-WebSocket</h3><span class="tag">فعال</span></div>
+        <div class="field"><div class="fieldtxt"><span class="xs muted">VLESS + WS + TLS</span><span class="mono sm trunc" dir="ltr">vless://5f1c2a9e-8d3b-4c7a-9e21-0b6d4a7c1f33@panel.example.com:443?type=ws&security=tls&path=%2Fws%2F3fa9c1d2e4b7#ASiRi-VLESS-WS</span></div><span class="iconbtn"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span></div>
+        <div class="field"><div class="fieldtxt"><span class="xs muted">Trojan + WS + TLS</span><span class="mono sm trunc" dir="ltr">trojan://5f1c2a9e-8d3b-4c7a-9e21-0b6d4a7c1f33@panel.example.com:443?type=ws&security=tls&path=%2Fws%2F3fa9c1d2e4b7#ASiRi-Trojan-WS</span></div><span class="iconbtn"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span></div>
+      </div>
+
+      <p class="lead">هر رله مستقل است. پروتکل‌های رمزنگاری‌شده (Shadowsocks، VLESS/Trojan روی WebSocket) در برابر فیلترینگ مقاوم‌ترند؛ SOCKS5 و HTTP CONNECT رمزنگاری ندارند.</p>
+
+      <details>
+        <summary>تنظیمات اشتراک (ثابت‌کردن آدرس و رمز)<span class="xs muted">برای تغییر، ابتدا متوقف کنید</span></summary>
+        <div class="dbody">
+          <div class="col gap2"><span class="xs muted">نام کاربری</span><div class="inrow"><div class="input" style="opacity:.5">myuser</div><span class="sq" style="opacity:.5"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="12" height="12" x="2" y="10" rx="2" ry="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/><path d="M6 18h.01"/><path d="M10 14h.01"/><path d="M15 6h.01"/><path d="M18 9h.01"/></svg></span></div></div>
+          <div class="col gap2"><span class="xs muted">رمز</span><div class="inrow"><div class="input" style="opacity:.5">k7Pq2mXv9RtLw4Ne</div><span class="sq" style="opacity:.5"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="12" height="12" x="2" y="10" rx="2" ry="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/><path d="M6 18h.01"/><path d="M10 14h.01"/><path d="M15 6h.01"/><path d="M18 9h.01"/></svg></span></div></div>
+          <div class="toggle"><span class="col"><span class="sm fw5">شروع خودکار</span><span class="xs muted">با هر بار وصل‌شدن تونل، اشتراک هم روشن شود</span></span><span class="sw on"></span></div>
+          <p class="lead">نام کاربری و رمز فقط حروف انگلیسی، عدد و <span dir="ltr">. _ ~ -</span> می‌پذیرند.</p>
+        </div>
+      </details>
+
+      <span class="btn stop"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg>توقف اشتراک</span>
+    </section>
+
+    <!-- خروجی تونل -->
+    <section class="card" aria-labelledby="exit-title">
+      <h2 id="exit-title">خروجی تونل</h2>
+      <dl class="grid2">
+        <div class="tile col gap1"><dt class="xs muted">IP</dt><dd class="mono sm trunc" dir="ltr">104.28.12.34</dd></div><div class="tile col gap1"><dt class="xs muted">کشور</dt><dd class="mono sm trunc" dir="ltr">DE · FRA</dd></div><div class="tile col gap1"><dt class="xs muted">تأخیر تا Cloudflare</dt><dd class="mono sm trunc" dir="ltr">42ms</dd></div><div class="tile col gap1"><dt class="xs muted">WARP</dt><dd class="mono sm trunc" dir="ltr">on</dd></div>
+      </dl>
+      <span class="btn ghost"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>تست اتصال از طریق پراکسی</span>
+      <div class="note mono xs" style="line-height:1.7">ip=104.28.12.34  loc=DE  colo=FRA  warp=on  (312ms)</div>
+    </section>
+
+    <!-- بهترین کانفیگ -->
+    <section class="card" aria-labelledby="best-title">
+      <div class="col gap1">
+        <h2 id="best-title"><svg class="ic accent" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>بهترین کانفیگ</h2>
+        <p class="lead">ترکیب پروتکل، ترنسپورت و حالت اسکن را یکی‌یکی امتحان می‌کند، تأخیر را می‌سنجد و برنده را ذخیره می‌کند. در این مدت تونل چند دقیقه قطع و وصل می‌شود.</p>
+      </div>
+      <ul class="results">
+        <li><span class="accent">mim · h2 · turbo</span><span>312 ms</span></li>
+        <li><span>masque · h2 · turbo</span><span>348 ms</span></li>
+        <li><span>wg · turbo</span><span>391 ms</span></li>
+        <li><span>gool · h2 · balanced</span><span>455 ms</span></li>
+      </ul>
+      <p class="xs muted" dir="ltr">Last known-good: mim · h2 · turbo · 312 ms</p>
+      <span class="btn primary"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>پیدا کردن بهترین کانفیگ</span>
+    </section>
+
+    <!-- تنظیمات -->
+    <section class="card settings" aria-labelledby="settings-title">
+      <div class="between"><h2 id="settings-title">تنظیمات</h2><span class="xs muted">برای تغییر، ابتدا قطع کنید</span></div>
+      <div class="col gap2"><div class="between base"><span class="sm fw5">پروتکل</span></div><div class="wrap gap2"><span class="opt"><bdi dir="ltr">MASQUE</bdi></span><span class="opt"><bdi dir="ltr">WireGuard</bdi></span><span class="opt"><bdi dir="ltr">Gool</bdi></span><span class="opt on"><bdi dir="ltr">MiM</bdi></span></div></div>
+      <div class="col gap2"><div class="between base"><span class="sm fw5">ترنسپورت</span><span class="muted xs">روی بیشتر هاست‌ها HTTP/2 مطمئن‌تر است</span></div><div class="wrap gap2"><span class="opt on"><bdi dir="ltr">HTTP/2</bdi></span><span class="opt"><bdi dir="ltr">HTTP/3</bdi></span></div></div>
+      <div class="col gap2"><div class="between base"><span class="sm fw5">حالت اسکن</span></div><div class="wrap gap2"><span class="opt on"><bdi dir="ltr">turbo</bdi></span><span class="opt"><bdi dir="ltr">balanced</bdi></span><span class="opt"><bdi dir="ltr">thorough</bdi></span><span class="opt"><bdi dir="ltr">verified</bdi></span><span class="opt"><bdi dir="ltr">ironclad</bdi></span></div></div>
+      <div class="col gap2"><div class="between base"><span class="sm fw5">نسخه IP</span></div><div class="wrap gap2"><span class="opt on"><bdi dir="ltr">IPv4</bdi></span><span class="opt"><bdi dir="ltr">IPv6</bdi></span><span class="opt"><bdi dir="ltr">هر دو</bdi></span></div></div>
+      <div class="col gap2"><div class="between base"><span class="sm fw5">مبهم‌سازی (noize)</span></div><div class="wrap gap2"><span class="opt on"><bdi dir="ltr">پیش‌فرض</bdi></span><span class="opt"><bdi dir="ltr">off</bdi></span><span class="opt"><bdi dir="ltr">light</bdi></span><span class="opt"><bdi dir="ltr">firewall</bdi></span><span class="opt"><bdi dir="ltr">balanced</bdi></span><span class="opt"><bdi dir="ltr">gfw</bdi></span><span class="opt"><bdi dir="ltr">aggressive</bdi></span></div></div>
+      <div class="col gap2">
+        <span class="sm fw5">پورت SOCKS5</span>
+        <div class="input" style="opacity:.5;font-size:1rem">1819</div>
+      </div>
+      <div class="sep">
+        <div class="toggle"><span class="col"><span class="sm fw5">پراکسی HTTP</span><span class="xs muted">روی پورت 1820</span></span><span class="sw"></span></div>
+        <div class="toggle"><span class="col"><span class="sm fw5">اتصال سریع</span><span class="xs muted">استفاده از آخرین gateway سالم</span></span><span class="sw on"></span></div>
+      </div>
+    </section>
+
+    <!-- پایش و اعلان -->
+    <section class="card" aria-labelledby="health-title">
+      <h2 id="health-title"><svg class="ic accent" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>پایش و اعلان</h2>
+      <dl class="col gap2" style="display:flex">
+        <div class="tile between"><dt class="xs muted">Watchdog</dt><dd class="mono sm" dir="ltr">on</dd></div><div class="tile between"><dt class="xs muted">AUTO_START</dt><dd class="mono sm" dir="ltr">on</dd></div><div class="tile between"><dt class="xs muted">Health failures</dt><dd class="mono sm" dir="ltr">0/3</dd></div><div class="tile between"><dt class="xs muted">Restarts</dt><dd class="mono sm" dir="ltr">0</dd></div><div class="tile between"><dt class="xs muted">Notify</dt><dd class="mono sm" dir="ltr">telegram + webhook</dd></div>
+      </dl>
+      <span class="btn plain"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>ارسال اعلان آزمایشی</span>
+    </section>
+
+    <!-- لاگ‌ها -->
+    <section class="card" aria-labelledby="logs-title">
+      <div class="between"><h2 id="logs-title">لاگ‌ها</h2><span class="xs accent" style="padding:.5rem .75rem">دنبال‌کردن: روشن</span></div>
+      <div class="logbox" tabindex="0" aria-label="خروجی Aether"><p>17:51:38 [+] aether starting · protocol=mim transport=h2 scan=turbo</p><p>17:51:39 [scan] turbo: probing 64 candidates</p><p>17:51:40 [scan] best gateway 162.159.198.2:443 (rtt 41ms)</p><p>17:51:41 [h2] connecting tcp to 162.159.198.2:443</p><p>17:51:41 [h2] tls established; alpn=</p><p>17:51:41 [h2] connect-ip request sent to cloudflareaccess.com</p><p>17:51:41 [h2] connect-ip status: 200</p><p>17:51:41 [h2] validating data-plane (end-to-end probe) before exposing socks5</p><p>17:51:41 [h2] tunnel validated (end-to-end data confirmed); exposing socks5</p><p>17:51:41 [+] socks5 server listening on 127.0.0.1:1819</p><p>17:51:42 [gateway] share gateway up on 127.0.0.1:41873</p><p>17:51:43 [relay] tcp relay listening on 0.0.0.0:1080</p></div>
+    </section>
+  </main>
+
+  <p class="foot">نمای ایستا و نمایشی — داده‌ها نمونه‌اند و به هیچ سروری وصل نیستند.</p>
+</div>
+</body>
+</html>
