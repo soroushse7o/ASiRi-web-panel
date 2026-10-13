@@ -1,4 +1,4 @@
-# ASiRi panel · پنل وب ASiRi (غیررسمی)
+# ASiRi panel · پنل وب ASiRi (غیررسمیaether)
 
 **[فارسی](#fa) · [English](#en)** · [راهنمای دپلوی / Deploy guide](README-DEPLOY.md) · [`.env.example`](.env.example)
 
@@ -18,7 +18,7 @@
 5. [کار با پنل](#fa-panel)
 6. [رله‌ها و لینک‌ها](#fa-relays)
 7. [اتصال کلاینت‌ها](#fa-clients)
-8. [ماندگاری: چه چیزی بعد از ری‌استارت می‌ماند؟](#fa-persist)
+8. [ماندگاری و Volume](#fa-persist)
 9. [پایداری: watchdog و AUTO_START](#fa-stability)
 10. [اعلان‌ها](#fa-notify)
 11. [مرجع متغیرهای محیطی](#fa-env)
@@ -45,7 +45,7 @@
 - **لینک‌ها:** SOCKS5 (`socks://` و `socks5://`)، لینک یک‌لمسی تلگرام، Shadowsocks AEAD (`ss://`)، HTTP CONNECT، VLESS+WS+TLS و Trojan+WS+TLS
 - **Watchdog** با backoff نمایی و بازگشت خودکار به آخرین کانفیگ سالم
 - **بهترین کانفیگ:** امتحان خودکار ترکیب پروتکل × ترنسپورت × حالت اسکن و ذخیره‌ی برنده
-- ذخیره‌ی تنظیمات تونل روی دیسک و `AUTO_START=1` برای اتصال خودکار بعد از هر ری‌استارت
+- ذخیره‌ی تنظیمات تونل روی دیسک (روی Volume) و `AUTO_START=1` برای اتصال خودکار بعد از هر ری‌استارت
 - اعلان با Webhook (Slack/Discord/…) و ربات تلگرام
 - Basic Auth روی کل پنل، محدودیت نرخ ورود ناموفق و کند کردن عمدی حدس رمز در gateway
 - رابط ریسپانسیو و راست‌به‌چین
@@ -94,11 +94,13 @@ docker run -d --name asiri-panel --restart unless-stopped \
   -v asiri-data:/data -e TMPDIR=/data/tmp \
   asiri-panel
 ```
+> خط `-v asiri-data:/data -e TMPDIR=/data/tmp` Volume را روی `/data` وصل می‌کند و داده‌های پنل را داخل آن می‌نویسد تا تنظیمات بعد از ری‌استارت بماند. توضیح کامل: [ماندگاری و Volume](#fa-persist).
+
 ۱. `http://localhost:3000` را باز کنید و با `PANEL_USER` / `PANEL_PASSWORD` وارد شوید.
 ۲. دکمه‌ی بزرگ اتصال را بزنید و صبر کنید وضعیت **متصل** شود.
 ۳. «ساخت آدرس عمومی» را بزنید (با `SHARE_AUTO=1` خودکار انجام می‌شود) و لینک را در کلاینت وارد کنید.
 
-> بدون هیچ رله‌ای دکمه‌ی «ساخت آدرس عمومی» خطای `No relay is enabled…` می‌دهد. حداقل یکی لازم است: `RELAY_PORT` (رله‌ی TCP) یا دامنه‌ی HTTPS پنل برای VLESS/Trojan (`INBOUND_PUBLIC_HOST`، یا دامنه‌ی خودکار Railway/Render). جزئیات هر پلتفرم در [README-DEPLOY.md](README-DEPLOY.md).
+> بدون هیچ رله‌ای دکمه‌ی «ساخت آدرس عمومی» خطای `No relay is enabled…` می‌دهد. حداقل یکی لازم است: `RELAY_PORT` (رله‌ی TCP) یا دامنه‌ی HTTPS پنل برای VLESS/Trojan (`INBOUND_PUBLIC_HOST`، یا دامنه‌ی خودکار Railway/Render). مراحل Railway، Render و VPS در [README-DEPLOY.md](README-DEPLOY.md).
 
 <a id="fa-panel"></a>
 ## کار با پنل
@@ -132,7 +134,7 @@ docker run -d --name asiri-panel --restart unless-stopped \
 ### تنظیمات اشتراک
 - نام کاربری ۳ تا ۳۲ کاراکتر، رمز ۸ تا ۶۴ کاراکتر؛ فقط `A-Za-z0-9._~-`.
 - فقط وقتی اشتراک **خاموش** است قابل تغییر است تا لینکِ در حال استفاده زیر دست شما عوض نشود.
-- ⚠️ مقدارها **فقط در حافظه‌ی پروسه** نگه داشته می‌شوند و روی دیسک نمی‌روند؛ با ری‌استارت پنل از متغیرهای `SHARE_*` خوانده می‌شوند. برای ثابت ماندن لینک‌ها آن‌ها را در Variables/Environment بگذارید ([ماندگاری](#fa-persist)).
+- ⚠️ مقدارها **فقط در حافظه‌ی پروسه** نگه داشته می‌شوند و روی دیسک (حتی روی Volume) نمی‌روند؛ با ری‌استارت پنل از متغیرهای `SHARE_*` خوانده می‌شوند. برای ثابت ماندن لینک‌ها آن‌ها را در Variables/Environment بگذارید ([ماندگاری](#fa-persist)).
 
 <a id="fa-relays"></a>
 ## رله‌ها و لینک‌ها
@@ -172,23 +174,77 @@ curl --socks5-hostname HOST:PORT --proxy-user USER:PASS https://www.cloudflare.c
 خروجی باید `ip=` و `warp=` را نشان دهد.
 
 <a id="fa-persist"></a>
-## ماندگاری: چه چیزی بعد از ری‌استارت می‌ماند؟
-مسیر داده‌ها `$TMPDIR/.aether` است. روی پلتفرم‌های کانتینری (Railway، Render، Docker) بدون Volume با هر ری‌استارت پاک می‌شود؛ برای همین `TMPDIR` را روی یک Volume بگذارید (مثلاً Volume روی `/data` و `TMPDIR=/data/tmp`).
+## ماندگاری و Volume: چه چیزی بعد از ری‌استارت می‌ماند؟
+پنل همه‌ی داده‌هایش را در `$TMPDIR/.aether` می‌نویسد. روی Railway، Render و Docker فایل‌سیستم کانتینر موقت است و با هر ری‌استارت یا دپلوی پاک می‌شود. برای ماندگاری باید **یک Volume به کانتینر وصل کنید** و **متغیر `TMPDIR` را داخل مسیر آن بگذارید**.
+
+### سه چیزی که نباید با هم قاطی شوند
+
+| مفهوم | یعنی چه | چه مقداری بگذارم |
+| --- | --- | --- |
+| **نام Volume** | برچسب دلخواه برای شناسایی در پلتفرم؛ پنل از آن استفاده نمی‌کند | هر نامی (مثلاً `asiri-data`) |
+| **Mount path** | مسیر داخل کانتینر که Volume به آن وصل می‌شود | `/data` |
+| **متغیر `TMPDIR`** | به پنل می‌گوید داده را کجا بنویسد. **باید با Mount path شروع شود** | `/data/tmp` |
+
+با `TMPDIR=/data/tmp` داده‌ها در `/data/tmp/.aether` ذخیره می‌شوند. پوشه‌ها را خود پنل می‌سازد. اگر ساده‌تر می‌خواهید، `TMPDIR=/data` هم کار می‌کند.
+
+### Railway
+1. پروژه را باز کنید، **Add Volume** را بزنید (Ctrl/⌘+K یا راست‌کلیک روی بوم پروژه) و **سرویس پنل** را انتخاب کنید.
+2. **Mount path:** `/data`. نام Volume را Railway خودش می‌گذارد و مهم نیست.
+3. در **Variables** سرویس این را اضافه کنید:
+   ```
+   TMPDIR=/data/tmp
+   ```
+4. سرویس را **Redeploy** کنید.
+
+`RAILWAY_VOLUME_MOUNT_PATH` را خود Railway می‌گذارد؛ دستی نگذارید. پنل با آن می‌فهمد `TMPDIR` داخل Volume است. هر Volume فقط به یک سرویس وصل می‌شود.
+
+### Render
+1. سرویس پنل ← **Disks ← Add Disk**.
+2. **Name:** دلخواه. **Mount Path:** `/data`. **Size:** مثلاً ۱ GB.
+3. در **Environment:** `TMPDIR=/data/tmp`
+4. Disk فقط روی نمونه‌های پولی (غیررایگان) در دسترس است.
+
+### Docker / VPS
+```bash
+docker run -d --name asiri-panel --restart unless-stopped \
+  -v asiri-data:/data \
+  -e TMPDIR=/data/tmp \
+  ... سایر گزینه‌ها ... \
+  asiri-panel
+```
+- `asiri-data` نام دلخواه Volume و `/data` مسیر داخل کانتینر است.
+- برای پوشه‌ی مستقیم روی سرور (bind mount): `-v /opt/asiri/data:/data`
+- کانتینر با کاربر root اجرا می‌شود؛ نیازی به chown نیست.
+
+### چطور مطمئن شوم درست شد؟
+- بنر «Settings and WARP identity will be lost on restart.» دیگر نمایش داده نمی‌شود.
+- بعد از اولین استارت تونل، فایل `tunnel-config.json` باید وجود داشته باشد:
+  ```bash
+  docker exec asiri-panel ls -la /data/tmp/.aether
+  ```
+  روی Railway/Render همین مسیر را در Shell سرویس ببینید.
+- سرویس را ری‌استارت کنید. تنظیمات تونل باید سر جایش باشد.
+
+### اشتباهات رایج
+- Volume ساخته‌اید ولی `TMPDIR` را نگذاشته‌اید: داده در `/tmp` نوشته می‌شود و می‌پرد.
+- `TMPDIR` بیرون از Mount path است (مثلاً `/tmp/data` یا `/app/data`): بنر می‌ماند.
+- `PERSISTENCE_OK=1` را بدون Volume گذاشته‌اید: فقط بنر پنهان می‌شود و چیزی ماندگار نمی‌شود.
+- انتظار دارید رمز اشتراک هم روی Volume بماند: نمی‌ماند (جدول زیر).
+
+### چه چیزی می‌ماند؟
 
 | مورد | کجا ذخیره می‌شود | بعد از ری‌استارت |
 | --- | --- | --- |
 | تنظیمات تونل، آخرین کانفیگ سالم (`lastGood`) و برنده‌ی «بهترین کانفیگ» | `tunnel-config.json` در `$TMPDIR/.aether` (دسترسی ۰۶۰۰) | می‌ماند، **اگر Volume داشته باشید** |
-| باینری Aether نصب‌شده از داخل پنل (خارج از Docker) و هویت WARP | `$TMPDIR/.aether` | می‌ماند، **اگر Volume داشته باشید** (طبق هشدار خود پنل: Settings and WARP identity) |
-| نام کاربری، رمز و «شروع خودکار» اشتراک | **فقط حافظه** (`process.env`) | **از دست می‌رود.** مقدار متغیرهای `SHARE_*` برمی‌گردد |
-| اگر `SHARE_*` را نگذاشته باشید | نام کاربری/رمز تصادفی ساخته می‌شود | با هر ری‌استارت **عوض می‌شود** و چون UUID و مسیر VLESS/Trojan از آن‌ها مشتق می‌شوند، همه‌ی لینک‌ها هم عوض می‌شوند |
+| باینری Aether نصب‌شده از پنل (خارج از Docker) و هویت WARP | `$TMPDIR/.aether` | می‌ماند، **اگر Volume داشته باشید** |
+| نام کاربری، رمز و «شروع خودکار» اشتراک | **فقط حافظه** (`process.env`) | **از دست می‌رود.** مقدار `SHARE_*` برمی‌گردد |
+| اگر `SHARE_*` را نگذاشته باشید | تصادفی ساخته می‌شود | **با هر ری‌استارت عوض می‌شود** و چون UUID و مسیر VLESS/Trojan از آن‌ها مشتق می‌شوند، همه‌ی لینک‌ها هم عوض می‌شوند |
 
-نتیجه: برای لینک‌های ثابت حتماً `SHARE_USERNAME` و `SHARE_PASSWORD` (و در صورت نیاز `SHARE_AUTO=1`) را در متغیرهای محیطی بگذارید. اگر مقدارشان نامعتبر باشد، پنل هشدار می‌دهد و تا ری‌استارت بعدی از مقدار تصادفی (با `SHARE_AUTO` خاموش) استفاده می‌کند.
-
-بنر «Settings and WARP identity will be lost on restart.» فقط وقتی نمایش داده می‌شود که پنل مطمئن باشد `TMPDIR` روی Volume نیست. با Volume واقعی ناپدید می‌شود؛ `PERSISTENCE_OK=1` فقط خود بنر را پنهان می‌کند و چیزی را ماندگار نمی‌کند.
+نتیجه: Volume برای تنظیمات تونل و هویت WARP است. برای لینک‌های ثابت، `SHARE_USERNAME` و `SHARE_PASSWORD` را حتماً در Variables/Environment بگذارید و برای اتصال خودکار بعد از ری‌استارت `AUTO_START=1` را فراموش نکنید. اگر مقدار `SHARE_*` نامعتبر باشد، پنل هشدار می‌دهد و تا ری‌استارت بعدی از مقدار تصادفی (با `SHARE_AUTO` خاموش) استفاده می‌کند.
 
 <a id="fa-stability"></a>
 ## پایداری: watchdog و AUTO_START
-- **AUTO_START=1:** بعد از هر ری‌استارت پنل، تونل با تنظیمات ذخیره‌شده (یا پیش‌فرض‌ها اگر چیزی ذخیره نشده) دوباره وصل می‌شود. با `SHARE_AUTO=1` رله‌ها هم با اتصال تونل روشن می‌شوند. راه‌اندازی از طریق یک درخواست داخلی با همان `PANEL_USER`/`PANEL_PASSWORD` انجام می‌شود، پس هر دو باید تنظیم باشند. بدون `AUTO_START`، بعد از ری‌استارت تونل خاموش می‌ماند.
+- **AUTO_START=1:** بعد از هر ری‌استارت پنل، تونل با تنظیمات ذخیره‌شده (یا پیش‌فرض‌ها اگر چیزی ذخیره نشده) دوباره وصل می‌شود. با `SHARE_AUTO=1` رله‌ها هم با اتصال تونل روشن می‌شوند. راه‌اندازی از طریق یک درخواست داخلی با همان `PANEL_USER`/`PANEL_PASSWORD` انجام می‌شود، پس هر دو باید تنظیم باشند. بدون `AUTO_START`، بعد از ری‌استارت تونل خاموش می‌ماند. (برای اینکه «تنظیمات ذخیره‌شده» واقعاً بماند، Volume لازم است.)
 - **Watchdog** هر ۵ ثانیه وضعیت را می‌سنجد و هر ۳۰ ثانیه یک health check واقعی انجام می‌دهد:
   - اگر اشتراک روشن و رله‌ی WebSocket فعال باشد، بررسی از **مسیر عمومی** انجام می‌شود: پنل به دامنه‌ی عمومی خودش وصل می‌شود، با VLESS یا Trojan یک درخواست به `www.cloudflare.com/cdn-cgi/trace` می‌فرستد و انتظار پاسخ ۲۰۰ دارد.
   - در غیر این صورت یک درخواست `curl` از پورت SOCKS5 محلی به همان آدرس می‌زند.
@@ -220,8 +276,8 @@ curl --socks5-hostname HOST:PORT --proxy-user USER:PASS https://www.cloudflare.c
 | `PANEL_USER`، `PANEL_PASSWORD` | — | **الزامی.** اگر یکی خالی باشد پنل `503` می‌دهد |
 | `PORT` | `3000` | پورت پنل (Railway/Render خودشان تنظیم می‌کنند) |
 | `HOSTNAME_BIND` | `0.0.0.0` | آدرس bind پنل |
-| `TMPDIR` | پوشه‌ی temp سیستم | محل داده‌ها؛ روی Volume بگذارید |
-| `PERSISTENCE_OK` | — | `1` = بنر ماندگاری نمایش داده نشود |
+| `TMPDIR` | پوشه‌ی temp سیستم | محل داده‌ها (`$TMPDIR/.aether`). برای ماندگاری باید **داخل Mount path Volume** باشد، مثلاً `/data/tmp` ([ماندگاری](#fa-persist)) |
+| `PERSISTENCE_OK` | — | `1` = فقط بنر ماندگاری پنهان شود؛ چیزی را ماندگار نمی‌کند |
 | `AUTO_START` | — | `1` = اتصال خودکار تونل بعد از راه‌اندازی |
 | `AETHER_BIN` | در Docker تنظیم است | مسیر باینری. جست‌وجو به‌ترتیب: `AETHER_BIN`، `$TMPDIR/.aether/aether`، `/tmp/aether/aether` |
 | `AETHER_VERSION` | در Docker `v1.5.0` | نسخه‌ی پین‌شده برای installer داخل پنل. بدون آن آخرین Release دانلود می‌شود |
@@ -300,6 +356,7 @@ curl --socks5-hostname HOST:PORT --proxy-user USER:PASS https://www.cloudflare.c
 - مسیر WebSocket (VLESS/Trojan) عمداً Basic Auth ندارد (کلاینت‌ها نمی‌توانند) و فقط با مسیر مخفی و UUID/رمزِ مشتق‌شده از اطلاعات اشتراک محافظت می‌شود؛ آن‌ها را لو ندهید. وقتی اشتراک خاموش است، این مسیر `404` می‌دهد.
 - SOCKS5 و HTTP CONNECT رمزنگاری‌شده نیستند؛ برای شبکه‌های ناامن از Shadowsocks/VLESS/Trojan استفاده کنید.
 - اعلان `subscription_changed` رمز را شامل می‌شود؛ فقط به کانال خصوصی بفرستید.
+- فایل تنظیمات تونل با دسترسی ۰۶۰۰ روی Volume نوشته می‌شود و رمز اشتراک را شامل نمی‌شود.
 - هدرهای امنیتی پیش‌فرض Next.js تنظیم شده‌اند: `X-Content-Type-Options`، `Strict-Transport-Security`، `X-Frame-Options`، `Referrer-Policy` و `Permissions-Policy`.
 
 <a id="fa-trouble"></a>
@@ -309,7 +366,8 @@ curl --socks5-hostname HOST:PORT --proxy-user USER:PASS https://www.cloudflare.c
 | --- | --- |
 | پنل `503` می‌دهد | `PANEL_USER` و `PANEL_PASSWORD` را تنظیم کنید |
 | پنل `429` می‌دهد | ورود ناموفق زیاد؛ ۱۰ دقیقه صبر کنید |
-| بنر «Settings and WARP identity…» | Volume روی `/data` بسازید و `TMPDIR=/data/tmp` بگذارید |
+| بنر «Settings and WARP identity…» | Volume بسازید (Mount path: `/data`) و `TMPDIR=/data/tmp` بگذارید؛ `TMPDIR` باید داخل Mount path باشد. جزئیات: [ماندگاری و Volume](#fa-persist) |
+| تنظیمات تونل بعد از ری‌استارت پاک می‌شود | Volume وصل نیست یا `TMPDIR` بیرون از Mount path است؛ با `ls /data/tmp/.aether` بررسی کنید |
 | «فایل اجرایی Aether پیدا نشد» | در Docker نباید رخ دهد؛ کارت نصب را بزنید یا `AETHER_BIN` را بررسی کنید |
 | بیلد Docker با `unsupported arch` شکست می‌خورد | از BuildKit استفاده کنید (`docker buildx build`) و معماری amd64 یا arm64 باشد |
 | تونل در scanning/connecting گیر می‌کند | حالت اسکن یا noize را عوض کنید یا «بهترین کانفیگ» را بزنید؛ watchdog بعد از ۵ دقیقه خودش ری‌استارت می‌کند |
@@ -317,7 +375,7 @@ curl --socks5-hostname HOST:PORT --proxy-user USER:PASS https://www.cloudflare.c
 | `No relay is enabled…` | حداقل یک رله لازم است: `RELAY_PORT` یا دامنه‌ی HTTPS پنل (`INBOUND_PUBLIC_HOST` / دامنه‌ی Railway/Render) |
 | رله‌ی TCP در حالت «منتظر آدرس عمومی» | TCP Proxy را در Railway فعال کنید یا `RELAY_PUBLIC_HOST` و `RELAY_PUBLIC_PORT` بدهید |
 | رله‌ی TCP «خطا» می‌دهد | `RELAY_PORT` با `PORT` یا `PORT+1` یکی است یا پورت اشغال است (از `1819`/`1820` هم استفاده نکنید) |
-| لینک‌ها بعد از هر ری‌استارت عوض می‌شوند | `SHARE_USERNAME` و `SHARE_PASSWORD` را در متغیرهای محیطی بگذارید |
+| لینک‌ها بعد از هر ری‌استارت عوض می‌شوند | `SHARE_USERNAME` و `SHARE_PASSWORD` را در متغیرهای محیطی بگذارید (Volume آن‌ها را نگه نمی‌دارد) |
 | تونل هر چند دقیقه ری‌استارت می‌شود | health check از مسیر عمومی شکست می‌خورد: `INBOUND_PUBLIC_HOST`، گواهی TLS و ارسال هدر Upgrade در reverse proxy را بررسی کنید یا `INBOUND_WS=off` بگذارید |
 | VLESS/Trojan وصل نمی‌شود | اشتراک باید روشن باشد؛ دامنه روی ۴۴۳ با TLS در دسترس باشد؛ مسیر درست باشد؛ reverse proxy هدر Upgrade را پاس دهد |
 | «Too many requests» | محدودیت نرخ APIهای سنگین؛ چند ثانیه صبر کنید |
@@ -326,6 +384,8 @@ curl --socks5-hostname HOST:PORT --proxy-user USER:PASS https://www.cloudflare.c
 
 <a id="fa-worker"></a>
 ## Cloudflare Worker (اختیاری)
+> 📖 راهنمای کامل Worker: [worker/README.md](worker/README.md) · راهنمای دپلوی: [worker/README-DEPLOY.md](worker/README-DEPLOY.md)
+
 پوشه‌ی `worker/` یک Worker مستقل است (بیرون از workspace پنل و از Dockerfile جداست). `worker/src/index.ts` دو کار می‌کند:
 - درخواست WebSocket روی `WS_PATH` را به یک مقصد TCP خام (`TARGET_HOST:TARGET_PORT`) از طریق `cloudflare:sockets` وصل می‌کند و پیام‌های باینری را بدون هیچ پردازش پروتکلی رد و بدل می‌کند؛ پس مقصد باید همان پروتکلی را بفهمد که کلاینت می‌فرستد.
 - هر درخواست دیگر (از جمله WebSocket روی مسیرهای دیگر) را به `ORIGIN` پراکسی می‌کند. با `ORIGIN` برابر آدرس پنل، دامنه‌ی Worker می‌تواند جلوی پنل قرار بگیرد و در پنل `INBOUND_PUBLIC_HOST` را روی دامنه‌ی Worker بگذارید. `WS_PATH` را روی مسیری بگذارید که با مسیر مخفی پنل یکی نباشد. اگر `ORIGIN` خالی باشد پاسخ `404` می‌دهد.
@@ -371,7 +431,7 @@ pnpm dev:ws         # اجرای server.mjs برای آزمایش WebSocket ور
 5. [Using the panel](#en-panel)
 6. [Relays and links](#en-relays)
 7. [Connecting clients](#en-clients)
-8. [Persistence: what survives a restart?](#en-persist)
+8. [Persistence and Volumes](#en-persist)
 9. [Stability: watchdog and AUTO_START](#en-stability)
 10. [Notifications](#en-notify)
 11. [Environment reference](#en-env)
@@ -398,7 +458,7 @@ pnpm dev:ws         # اجرای server.mjs برای آزمایش WebSocket ور
 - **Links:** SOCKS5 (`socks://`, `socks5://`), one-tap Telegram link, Shadowsocks AEAD (`ss://`), HTTP CONNECT, VLESS+WS+TLS and Trojan+WS+TLS
 - **Watchdog** with exponential backoff and automatic fallback to the last known-good config
 - **Find best config:** tries protocol × transport × scan mode and saves the winner
-- Tunnel settings persisted to disk, plus `AUTO_START=1` to reconnect after every restart
+- Tunnel settings persisted to disk (on a volume), plus `AUTO_START=1` to reconnect after every restart
 - Webhook (Slack/Discord/…) and Telegram bot notifications
 - Basic Auth on the whole panel, failed-login rate limiting, deliberately slowed brute-force on the gateway
 - Responsive, RTL-aware UI
@@ -447,11 +507,13 @@ docker run -d --name asiri-panel --restart unless-stopped \
   -v asiri-data:/data -e TMPDIR=/data/tmp \
   asiri-panel
 ```
+> The line `-v asiri-data:/data -e TMPDIR=/data/tmp` attaches a volume at `/data` and makes the panel write its data inside it, so settings survive restarts. Full explanation: [Persistence and Volumes](#en-persist).
+
 1. Open `http://localhost:3000` and sign in with `PANEL_USER` / `PANEL_PASSWORD`.
 2. Press the big connect button and wait for **connected**.
 3. Press "Create public address" (automatic with `SHARE_AUTO=1`) and import the link in your client.
 
-> With no relay configured, the share button fails with `No relay is enabled…`. At least one is required: `RELAY_PORT` (TCP relay) or an HTTPS domain for VLESS/Trojan (`INBOUND_PUBLIC_HOST`, or the automatic Railway/Render domain). Per-platform details are in [README-DEPLOY.md](README-DEPLOY.md).
+> With no relay configured, the share button fails with `No relay is enabled…`. At least one is required: `RELAY_PORT` (TCP relay) or an HTTPS domain for VLESS/Trojan (`INBOUND_PUBLIC_HOST`, or the automatic Railway/Render domain). Step-by-step Railway, Render and VPS guides are in [README-DEPLOY.md](README-DEPLOY.md).
 
 <a id="en-panel"></a>
 ## Using the panel
@@ -485,7 +547,7 @@ If the Aether binary is missing (normally only outside Docker), an "Install Aeth
 ### Share settings
 - Username 3–32 chars, password 8–64 chars; only `A-Za-z0-9._~-`.
 - Editable only while sharing is **off**, so a link in use never changes under you.
-- ⚠️ Values live **only in process memory** and are never written to disk; after a panel restart they come from the `SHARE_*` variables again. Put them in the environment to keep links stable ([Persistence](#en-persist)).
+- ⚠️ Values live **only in process memory** and are never written to disk (not even to a volume); after a panel restart they come from the `SHARE_*` variables again. Put them in the environment to keep links stable ([Persistence](#en-persist)).
 
 <a id="en-relays"></a>
 ## Relays and links
@@ -525,23 +587,77 @@ curl --socks5-hostname HOST:PORT --proxy-user USER:PASS https://www.cloudflare.c
 The output should include `ip=` and `warp=`.
 
 <a id="en-persist"></a>
-## Persistence: what survives a restart?
-The data directory is `$TMPDIR/.aether`. On container platforms (Railway, Render, Docker) it is wiped on every restart unless it sits on a volume, so point `TMPDIR` at one (e.g. a volume at `/data` and `TMPDIR=/data/tmp`).
+## Persistence and Volumes: what survives a restart?
+The panel writes all its data to `$TMPDIR/.aether`. On Railway, Render and Docker the container filesystem is ephemeral and is wiped on every restart or deploy. To persist data you must **attach a Volume** and **point `TMPDIR` inside its mount path**.
+
+### Three things not to mix up
+
+| Concept | Meaning | What to set |
+| --- | --- | --- |
+| **Volume name** | free-form label in the platform UI; the panel never uses it | anything (e.g. `asiri-data`) |
+| **Mount path** | where the volume appears inside the container | `/data` |
+| **`TMPDIR` variable** | tells the panel where to write. **Must start with the mount path** | `/data/tmp` |
+
+With `TMPDIR=/data/tmp` the data lives in `/data/tmp/.aether`. The panel creates the folders itself. `TMPDIR=/data` also works if you prefer it simpler.
+
+### Railway
+1. Open the project, choose **Add Volume** (Ctrl/⌘+K or right-click the canvas) and select the **panel service**.
+2. **Mount path:** `/data`. Railway picks the volume name; it doesn't matter.
+3. In the service **Variables** add:
+   ```
+   TMPDIR=/data/tmp
+   ```
+4. **Redeploy** the service.
+
+Railway injects `RAILWAY_VOLUME_MOUNT_PATH` itself; don't set it by hand. The panel uses it to recognise that `TMPDIR` is on the volume. A volume attaches to a single service.
+
+### Render
+1. Service ← **Disks ← Add Disk**.
+2. **Name:** anything. **Mount Path:** `/data`. **Size:** e.g. 1 GB.
+3. In **Environment:** `TMPDIR=/data/tmp`
+4. Disks are only available on paid (non-free) instances.
+
+### Docker / VPS
+```bash
+docker run -d --name asiri-panel --restart unless-stopped \
+  -v asiri-data:/data \
+  -e TMPDIR=/data/tmp \
+  ... other options ... \
+  asiri-panel
+```
+- `asiri-data` is any volume name, `/data` the path inside the container.
+- For a plain host folder (bind mount): `-v /opt/asiri/data:/data`
+- The container runs as root, so no chown is needed.
+
+### How do I know it works?
+- The "Settings and WARP identity will be lost on restart." banner is gone.
+- After the first tunnel start, `tunnel-config.json` exists:
+  ```bash
+  docker exec asiri-panel ls -la /data/tmp/.aether
+  ```
+  On Railway/Render, check the same path in the service shell.
+- Restart the service; the tunnel settings are still there.
+
+### Common mistakes
+- A volume is attached but `TMPDIR` is unset: data goes to `/tmp` and is lost.
+- `TMPDIR` is outside the mount path (e.g. `/tmp/data` or `/app/data`): the banner stays.
+- `PERSISTENCE_OK=1` without a volume: it only hides the banner and persists nothing.
+- Expecting the share credentials to live on the volume: they don't (table below).
+
+### What survives?
 
 | Item | Stored in | After a restart |
 | --- | --- | --- |
 | Tunnel options, last known-good config (`lastGood`) and the "Best config" winner | `tunnel-config.json` in `$TMPDIR/.aether` (mode 0600) | kept, **if you have a volume** |
-| Aether binary installed from the panel (outside Docker) and the WARP identity | `$TMPDIR/.aether` | kept, **if you have a volume** (per the panel's own warning: Settings and WARP identity) |
+| Aether binary installed from the panel (outside Docker) and the WARP identity | `$TMPDIR/.aether` | kept, **if you have a volume** |
 | Share username, password and "auto start" | **memory only** (`process.env`) | **lost.** The `SHARE_*` variables apply again |
-| If `SHARE_*` is unset | random username/password are generated | **change on every restart**, and since the VLESS/Trojan UUID and path derive from them, every link changes too |
+| If `SHARE_*` is unset | random values are generated | **change on every restart**; since the VLESS/Trojan UUID and path derive from them, every link changes too |
 
-Bottom line: for stable links set `SHARE_USERNAME` and `SHARE_PASSWORD` (and `SHARE_AUTO=1` if wanted) as environment variables. If they are invalid the panel warns and uses random values (with `SHARE_AUTO` off) until the next restart.
-
-The "Settings and WARP identity will be lost on restart." banner appears only when the panel is sure `TMPDIR` is not on a volume. A real volume makes it disappear; `PERSISTENCE_OK=1` only hides the banner and persists nothing.
+Bottom line: the volume is for tunnel settings and the WARP identity. For stable links, set `SHARE_USERNAME` and `SHARE_PASSWORD` as environment variables, and add `AUTO_START=1` to reconnect automatically after a restart. If the `SHARE_*` values are invalid the panel warns and uses random values (with `SHARE_AUTO` off) until the next restart.
 
 <a id="en-stability"></a>
 ## Stability: watchdog and AUTO_START
-- **AUTO_START=1:** after every panel restart the tunnel reconnects with the saved config (or defaults if nothing was saved). With `SHARE_AUTO=1` the relays come up when the tunnel connects. The boot goes through an internal authenticated request, so both `PANEL_USER` and `PANEL_PASSWORD` must be set. Without `AUTO_START` the tunnel stays off after a restart.
+- **AUTO_START=1:** after every panel restart the tunnel reconnects with the saved config (or defaults if nothing was saved). With `SHARE_AUTO=1` the relays come up when the tunnel connects. The boot goes through an internal authenticated request, so both `PANEL_USER` and `PANEL_PASSWORD` must be set. Without `AUTO_START` the tunnel stays off after a restart. (The "saved config" only survives restarts if you have a volume.)
 - **Watchdog** ticks every 5 s and runs a real health check every 30 s:
   - If sharing is on and the WebSocket relay is active, the check goes through the **public path**: the panel connects to its own public domain, sends a request to `www.cloudflare.com/cdn-cgi/trace` over VLESS or Trojan and expects a 200.
   - Otherwise it runs a `curl` request through the local SOCKS5 port to the same URL.
@@ -573,8 +689,8 @@ Full commented sample: [`.env.example`](.env.example). Numeric watchdog values m
 | `PANEL_USER`, `PANEL_PASSWORD` | — | **Required.** If either is empty the panel returns `503` |
 | `PORT` | `3000` | panel port (Railway/Render set it themselves) |
 | `HOSTNAME_BIND` | `0.0.0.0` | panel bind address |
-| `TMPDIR` | OS temp dir | data directory; put it on a volume |
-| `PERSISTENCE_OK` | — | `1` hides the persistence banner |
+| `TMPDIR` | OS temp dir | data directory (`$TMPDIR/.aether`). To persist, it must be **inside the volume's mount path**, e.g. `/data/tmp` ([Persistence](#en-persist)) |
+| `PERSISTENCE_OK` | — | `1` only hides the persistence banner; it persists nothing |
 | `AUTO_START` | — | `1` starts the tunnel on boot |
 | `AETHER_BIN` | preset in Docker | binary path. Lookup order: `AETHER_BIN`, `$TMPDIR/.aether/aether`, `/tmp/aether/aether` |
 | `AETHER_VERSION` | `v1.5.0` in Docker | pins the in-panel installer. Without it the latest release is downloaded |
@@ -653,6 +769,7 @@ Example: `curl -u admin:PASSWORD https://your-domain/api/aether/status`
 - The WebSocket path (VLESS/Trojan) intentionally has no Basic Auth (clients can't send it) and is protected only by the secret path and the UUID/password derived from the share credentials; do not leak them. While sharing is off this path returns `404`.
 - SOCKS5 and HTTP CONNECT are not encrypted; use Shadowsocks/VLESS/Trojan on untrusted networks.
 - `subscription_changed` notifications include the credentials; send them to private channels only.
+- The tunnel config file is written to the volume with mode 0600 and does not contain the share credentials.
 - Standard security headers are set by Next.js config: `X-Content-Type-Options`, `Strict-Transport-Security`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy`.
 
 <a id="en-trouble"></a>
@@ -662,7 +779,8 @@ Example: `curl -u admin:PASSWORD https://your-domain/api/aether/status`
 | --- | --- |
 | Panel returns `503` | set `PANEL_USER` and `PANEL_PASSWORD` |
 | Panel returns `429` | too many failed logins; wait 10 minutes |
-| "Settings and WARP identity…" banner | add a volume at `/data` and set `TMPDIR=/data/tmp` |
+| "Settings and WARP identity…" banner | attach a volume (mount path `/data`) and set `TMPDIR=/data/tmp`; `TMPDIR` must be inside the mount path. Details: [Persistence and Volumes](#en-persist) |
+| Tunnel settings vanish after a restart | the volume isn't attached or `TMPDIR` is outside the mount path; check with `ls /data/tmp/.aether` |
 | "Aether binary not found" | shouldn't happen in Docker; press the install card or check `AETHER_BIN` |
 | Docker build fails with `unsupported arch` | use BuildKit (`docker buildx build`) and an amd64 or arm64 host |
 | Tunnel stuck in scanning/connecting | change scan mode or noize, or run "Find best config"; the watchdog restarts it after 5 minutes |
@@ -670,7 +788,7 @@ Example: `curl -u admin:PASSWORD https://your-domain/api/aether/status`
 | `No relay is enabled…` | at least one relay is needed: `RELAY_PORT` or the panel's HTTPS domain (`INBOUND_PUBLIC_HOST` / the Railway/Render domain) |
 | TCP relay "pending" | enable TCP Proxy on Railway or set `RELAY_PUBLIC_HOST` and `RELAY_PUBLIC_PORT` |
 | TCP relay "error" | `RELAY_PORT` equals `PORT` or `PORT+1`, or is in use (also avoid `1819`/`1820`) |
-| Links change after every restart | set `SHARE_USERNAME` and `SHARE_PASSWORD` as environment variables |
+| Links change after every restart | set `SHARE_USERNAME` and `SHARE_PASSWORD` as environment variables (a volume does not keep them) |
 | Tunnel restarts every few minutes | the public-path health check fails: check `INBOUND_PUBLIC_HOST`, the TLS certificate and that the reverse proxy forwards the Upgrade header, or set `INBOUND_WS=off` |
 | VLESS/Trojan won't connect | sharing must be on; the domain must be reachable on 443 with TLS; the path must be right; the reverse proxy must forward the Upgrade header |
 | "Too many requests" | rate limit on heavy endpoints; wait a few seconds |
@@ -679,6 +797,8 @@ Example: `curl -u admin:PASSWORD https://your-domain/api/aether/status`
 
 <a id="en-worker"></a>
 ## Cloudflare Worker (optional)
+> 📖 Full Worker docs: [worker/README.md](worker/README.md) · Deploy guide: [worker/README-DEPLOY.md](worker/README-DEPLOY.md)
+
 The `worker/` folder is a standalone Worker (outside the panel's workspace and the Dockerfile). `worker/src/index.ts` does two things:
 - It bridges a WebSocket on `WS_PATH` to a raw TCP target (`TARGET_HOST:TARGET_PORT`) through `cloudflare:sockets`, passing binary messages through with no protocol handling; the target must therefore understand whatever protocol your client sends.
 - Every other request (including WebSockets on other paths) is reverse-proxied to `ORIGIN`. With `ORIGIN` set to your panel's URL, the Worker domain can sit in front of the panel; then set `INBOUND_PUBLIC_HOST` in the panel to the Worker domain. Choose a `WS_PATH` that differs from the panel's secret path. If `ORIGIN` is empty it answers `404`.

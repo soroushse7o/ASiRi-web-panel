@@ -1,404 +1,405 @@
-# ASiRi panel — Deploy guide · راهنمای دپلوی
+# راهنمای دپلوی · Deploy guide — ASiRi panel
 
-**[فارسی](#fa) · [English](#en)**
-
-> Full documentation: [README.md](README.md) · Variable reference: [.env.example](.env.example)
-> مستندات کامل: [README.md](README.md) · مرجع متغیرها: [.env.example](.env.example)
+**[فارسی](#fa) · [English](#en)** · [README](README.md) · [`.env.example`](.env.example)
 
 ---
 
 <a id="fa"></a>
 # 🇮🇷 فارسی
 
-## قبل از شروع
+## فهرست
+1. [قبل از شروع: چه چیزی لازم است؟](#fa-before)
+2. [Railway](#fa-railway)
+3. [Render](#fa-render)
+4. [VPS با Docker](#fa-vps)
+5. [Cloudflare Worker (اختیاری)](#fa-worker)
+6. [چک‌لیست بعد از دپلوی](#fa-check)
+7. [به‌روزرسانی و پشتیبان‌گیری](#fa-update)
+8. [مشکلات رایج](#fa-trouble)
 
-**پیش‌نیاز:** ریپو روی GitHub خودتان (Fork یا Push) و یکی از این‌ها: حساب Railway، حساب Render (پلن **پولی**) یا یک VPS با Docker.
+<a id="fa-before"></a>
+## قبل از شروع: چه چیزی لازم است؟
+- ریپو را در GitHub داشته باشید (Fork یا ریپوی خودتان). ایمیج از `Dockerfile` ریشه‌ی ریپو ساخته می‌شود.
+- **حداقل یک رله:** رله‌ی TCP (`RELAY_PORT`) یا دامنه‌ی HTTPS پنل برای VLESS/Trojan. Railway و Render دامنه‌ی HTTPS را خودکار می‌دهند.
+- **یک Volume** (Mount path: `/data`) و `TMPDIR=/data/tmp`، وگرنه با هر دپلوی تنظیمات و هویت WARP پاک می‌شود. جزئیات: [README ← ماندگاری و Volume](README.md#fa-persist).
+- **رمزها را خودتان بدهید:** `PANEL_PASSWORD` و `SHARE_PASSWORD` طولانی و تصادفی؛ و `SHARE_USERNAME`. رمز اشتراک روی Volume ذخیره نمی‌شود و اگر ندهید، با هر ری‌استارت لینک‌ها عوض می‌شوند.
 
-**کدام پلتفرم؟**
+مقایسه‌ی پلتفرم‌ها:
 
-| | Railway | Render | VPS با Docker |
+| | Railway | Render | VPS |
 | --- | --- | --- | --- |
-| رله‌ی TCP (`host:port` ثابت) | ✅ با TCP Proxy | ❌ ندارد | ✅ با `RELAY_PORT` |
-| رله‌ی WebSocket (VLESS/Trojan روی ۴۴۳) | ✅ دامنه‌ی خودکار | ✅ دامنه‌ی خودکار | ✅ با دامنه و reverse proxy |
-| ماندگاری | Volume | Disk (پولی) | Docker volume |
-| هزینه | طبق پلن | پلن رایگان نمی‌شود (می‌خوابد و تونل قطع می‌شود) | هزینه‌ی سرور |
+| رله‌ی TCP (SOCKS/SS/HTTP) | ✅ با TCP Proxy | ❌ فقط پورت HTTP عمومی است | ✅ |
+| رله‌ی WebSocket (VLESS/Trojan) | ✅ | ✅ | ✅ (با reverse proxy) |
+| HTTPS خودکار | ✅ | ✅ | با Caddy/Nginx |
+| Volume | ✅ | ✅ (نمونه‌ی پولی) | ✅ |
 
-**سه تصمیم قبل از دپلوی:**
-1. **دو رمز طولانی و تصادفی** بسازید: یکی برای ورود به پنل (`PANEL_PASSWORD`) و یکی برای اشتراک (`SHARE_PASSWORD`).
-2. **`SHARE_USERNAME` و `SHARE_PASSWORD` را حتماً در متغیرهای محیطی بگذارید.** تنظیمات اشتراک روی دیسک ذخیره نمی‌شود؛ بدون این دو متغیر با هر ری‌استارت نام کاربری و رمز تصادفی عوض می‌شود و همه‌ی لینک‌ها (از جمله VLESS/Trojan) از کار می‌افتند. نام کاربری ۳ تا ۳۲ و رمز ۸ تا ۶۴ کاراکتر از `A-Za-z0-9._~-` باشد.
-3. **Volume بسازید** و `TMPDIR` را روی آن بگذارید تا تنظیمات تونل، آخرین کانفیگ سالم و نتیجه‌ی «بهترین کانفیگ» بعد از ری‌استارت بمانند.
+<a id="fa-railway"></a>
+## Railway
 
-## ۱) Railway — گام‌به‌گام
+### ۱) ساخت سرویس
+1. **New Project ← Deploy from GitHub repo** و ریپو را انتخاب کنید. Railway خودش `Dockerfile` را پیدا و بیلد می‌کند.
+2. در **Settings ← Networking** روی **Generate Domain** بزنید تا دامنه‌ی `*.up.railway.app` ساخته شود (پورت هدف همان `PORT` سرویس است؛ پیش‌فرض `3000`).
+3. در **Settings ← Healthcheck Path** مقدار `/healthz` را بگذارید (این مسیر بدون رمز است).
 
-> نام منوها ممکن است با به‌روزرسانی Railway کمی فرق کند.
+### ۲) Volume
+1. روی بوم پروژه **Add Volume** بزنید (Ctrl/⌘+K یا راست‌کلیک) و **سرویس پنل** را انتخاب کنید.
+2. **Mount path:** `/data` (نام Volume مهم نیست).
 
-### ۱.۱ سرویس
-1. **New Project ← Deploy from GitHub repo** و ریپو را انتخاب کنید. `Dockerfile` ریشه خودکار شناسایی می‌شود.
-2. Start Command را **عوض نکنید**؛ ایمیج با `server.mjs` (همان `next start` به‌علاوه‌ی هوک WebSocket) راه می‌افتد.
-3. در **Variables** این‌ها را بگذارید:
-
-| متغیر | الزامی؟ | مقدار |
-| --- | --- | --- |
-| `PANEL_USER`، `PANEL_PASSWORD` | ✅ | ورود به پنل (بدون آن پنل `503` می‌دهد) |
-| `SHARE_USERNAME`، `SHARE_PASSWORD` | ✅ توصیه‌ی جدی | برای لینک‌های ثابت (بالا را ببینید) |
-| `TMPDIR` | ✅ توصیه می‌شود | `/data/tmp` (بعد از ساخت Volume) |
-| `AUTO_START` | توصیه می‌شود | `1` — اتصال خودکار تونل بعد از هر ری‌استارت |
-| `SHARE_AUTO` | توصیه می‌شود | `1` — رله‌ها با اتصال تونل روشن شوند |
-| `RELAY_PORT` | برای رله‌ی TCP | `1080` (هر پورت آزاد به‌جز `PORT` و `PORT+1`؛ از `1819` و `1820` هم استفاده نکنید) |
-| `SHARE_PROTOCOLS` | اختیاری | `socks,http,ss` (پیش‌فرض). فقط رمزنگاری‌شده: `ss` |
-| `INBOUND_WS` | اختیاری | `vless,trojan` (پیش‌فرض)، یکی از دو، یا `off` |
-| `INBOUND_WS_PATH` | اختیاری | مسیر دلخواه WebSocket، مثل `/my-secret-path` |
-| `NOTIFY_*` | اختیاری | بخش اعلان‌ها در `.env.example` |
-
-4. **Settings ← Networking ← Generate Domain** برای پنل. پورت هدف دامنه باید برابر `PORT` سرویس باشد؛ Railway خودش `PORT` را تزریق می‌کند (پیش‌فرض ایمیج ۳۰۰۰ است). بعد از ساخت دامنه، Railway متغیر `RAILWAY_PUBLIC_DOMAIN` را تزریق می‌کند و پنل آن را برای لینک‌های VLESS/Trojan می‌خواند.
-
-### ۱.۲ Volume (ماندگاری)
-**Settings ← Volumes ← New Volume** را روی مسیر `/data` بسازید و `TMPDIR=/data/tmp` را بگذارید. بدون آن با هر ری‌استارت این‌ها پاک می‌شود و پنل بنر `Settings and WARP identity will be lost on restart.` نشان می‌دهد:
-- تنظیمات تونل، آخرین کانفیگ سالم و برنده‌ی «بهترین کانفیگ» (`tunnel-config.json`)
-- هویت WARP
-
-> نام کاربری و رمز اشتراک در هر حالت فقط از متغیرهای محیطی خوانده می‌شوند و روی Volume ذخیره نمی‌شوند.
-
-### ۱.۳ TCP Proxy (آدرس ثابت `host:port`)
-1. **Settings ← Networking ← TCP Proxy ← Add**.
-2. «Application port» را برابر `RELAY_PORT` (مثلاً `1080`) بگذارید.
-3. Railway این متغیرها را خودش تزریق می‌کند و پنل آن‌ها را می‌خواند؛ چیزی لازم نیست کپی کنید: `RAILWAY_TCP_PROXY_DOMAIN`، `RAILWAY_TCP_PROXY_PORT`، `RAILWAY_TCP_APPLICATION_PORT`.
-4. **Redeploy** کنید.
-5. اگر `RELAY_PORT` را نگذارید ولی TCP Proxy فعال باشد، `RAILWAY_TCP_APPLICATION_PORT` استفاده می‌شود.
-
-### ۱.۴ راه‌اندازی در پنل
-1. دامنه‌ی Railway را باز کنید و وارد شوید.
-2. تونل را وصل کنید (با `AUTO_START=1` خودش وصل می‌شود).
-3. «ساخت آدرس عمومی» را بزنید (با `SHARE_AUTO=1` خودکار است).
-4. در کارت اشتراک، لینک‌های رله‌ی TCP (`ASiRi-Railway`) و دامنه‌ی پنل (VLESS/Trojan) را برای کلاینت بردارید.
-
-### ۱.۵ VLESS / Trojan روی WebSocket
-نیاز به تنظیم اضافه ندارد: دامنه‌ی Railway پنل، upgrade وب‌سوکت را با TLS لبه روی ۴۴۳ حمل می‌کند. اشتراک را روشن کنید و لینک `vless://` یا `trojan://` را بردارید. فقط TCP (بدون UDP و mux).
-
-### ۱.۶ چک‌لیست بعد از دپلوی
-- [ ] `https://<دامنه>/healthz` پاسخ `ok` می‌دهد (بدون رمز)
-- [ ] ورود به پنل با رمز کار می‌کند
-- [ ] بنر ماندگاری دیده نمی‌شود
-- [ ] وضعیت **متصل** است و IP خروجی نمایش داده می‌شود
-- [ ] رله‌ی TCP در حالت **فعال** است (نه «منتظر آدرس عمومی» یا «خطا»)
-- [ ] لینک را در یک کلاینت امتحان کردید
-- [ ] بعد از یک Redeploy، تونل خودش وصل شد و لینک‌ها عوض نشدند
-
-## ۲) Render
-
-1. **New ← Web Service**، Runtime = **Docker**، ریپو را وصل کنید.
-2. Instance Type باید **پولی** باشد (پلن رایگان سرویس را می‌خواباند و تونل قطع می‌شود).
-3. Environment: `PANEL_USER`، `PANEL_PASSWORD`، `SHARE_USERNAME`، `SHARE_PASSWORD`، `TMPDIR=/data/tmp` و در صورت نیاز `AUTO_START=1`، `SHARE_AUTO=1`.
-4. **Advanced ← Health Check Path:** `/healthz`.
-5. **Disk** روی `/data` بسازید (برای ماندگاری؛ نیازمند پلن پولی).
-6. دامنه‌ی `*.onrender.com` برای VLESS/Trojan از `RENDER_EXTERNAL_HOSTNAME` خودکار شناسایی می‌شود. اگر دامنه‌ی اختصاصی وصل کرده‌اید، `INBOUND_PUBLIC_HOST` را روی آن بگذارید.
-
-> Render **TCP Proxy ندارد.** روی Render فقط رله‌ی WebSocket (VLESS/Trojan) کار می‌کند و `RELAY_PORT` به کار نمی‌آید. رله‌ی TCP را روی Railway یا VPS خودتان اجرا کنید.
-
-## ۳) VPS با Docker
-
-### ۳.۱ فایل‌ها
-کنار ریپو یک فایل `.env` بسازید (و آن را commit نکنید):
-```bash
-PANEL_PASSWORD=رمز-طولانی-پنل
+### ۳) متغیرها (Variables)
+```
+PANEL_USER=admin
+PANEL_PASSWORD=یک-رمز-طولانی-و-تصادفی
 SHARE_USERNAME=myuser
-SHARE_PASSWORD=رمز-طولانی-اشتراک
-RELAY_PUBLIC_HOST=YOUR.SERVER.IP.OR.DOMAIN
-PANEL_DOMAIN=panel.example.com
+SHARE_PASSWORD=رمز-اشتراک-طولانی
+TMPDIR=/data/tmp
+AUTO_START=1
+SHARE_AUTO=1
 ```
-و `docker-compose.yml`:
-```yaml
-services:
-  asiri-panel:
-    build: .
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:3000:3000"   # پنل؛ فقط از طریق reverse proxy در دسترس باشد
-      - "1080:1080"             # رله‌ی TCP (در صورت استفاده از RELAY_PORT)
-    environment:
-      PANEL_USER: admin
-      PANEL_PASSWORD: ${PANEL_PASSWORD}
-      TMPDIR: /data/tmp
-      AUTO_START: "1"
-      SHARE_AUTO: "1"
-      SHARE_USERNAME: ${SHARE_USERNAME}
-      SHARE_PASSWORD: ${SHARE_PASSWORD}
-      RELAY_PORT: "1080"
-      RELAY_PUBLIC_HOST: ${RELAY_PUBLIC_HOST}   # خارج از Railway الزامی است
-      RELAY_PUBLIC_PORT: "1080"
-      INBOUND_PUBLIC_HOST: ${PANEL_DOMAIN}      # دامنه‌ی HTTPS شما برای VLESS/Trojan
-    volumes:
-      - asiri-data:/data
-volumes:
-  asiri-data:
-```
-اجرا: `docker compose up -d --build`
+متغیرهای `RAILWAY_PUBLIC_DOMAIN` و `RAILWAY_VOLUME_MOUNT_PATH` را خود Railway می‌گذارد. دامنه‌ی عمومی خودکار برای VLESS/Trojan استفاده می‌شود و `INBOUND_PUBLIC_HOST` لازم نیست.
 
-- اگر رمز پنل علامت `$` دارد، در `.env` آن را `$$` بنویسید.
-- نیازی به رله‌ی TCP ندارید؟ خط `1080` و متغیرهای `RELAY_*` را حذف کنید.
-- دامنه‌ی HTTPS ندارید؟ `INBOUND_PUBLIC_HOST` را حذف و `INBOUND_WS: "off"` اضافه کنید تا رله‌ی WebSocket خاموش بماند. دامنه‌ی اشتباه یا نرسیده به این پنل باعث شکست health check عمومی و ری‌استارت‌های پشت‌سرهم تونل می‌شود. در این حالت پنل را با تونل SSH باز کنید: `ssh -L 3000:127.0.0.1:3000 user@server` و سپس `http://localhost:3000`.
+### ۴) رله‌ی TCP (اختیاری، برای SOCKS/Shadowsocks/HTTP)
+1. در **Settings ← Networking ← TCP Proxy** پورت **Application port** را بنویسید، مثلاً `1080`.
+2. در Variables بگذارید: `RELAY_PORT=1080` (**همان عدد**؛ نباید `PORT` یا `PORT+1` باشد).
+3. Railway یک دامنه و پورت تصادفی (مثل `xyz.proxy.rlwy.net:12345`) می‌دهد؛ پنل آن را از `RAILWAY_TCP_PROXY_DOMAIN` و `RAILWAY_TCP_PROXY_PORT` خودکار می‌خواند.
 
-### ۳.۲ HTTPS برای پنل و VLESS/Trojan
-reverse proxy باید **WebSocket Upgrade** را به پورت ۳۰۰۰ پاس بدهد و پنل از `X-Real-IP` یا `X-Forwarded-For` برای محدودیت ورود استفاده می‌کند.
+### ۵) Redeploy
+بعد از ساخت Volume و تنظیم متغیرها، سرویس را Redeploy کنید. بعد به [چک‌لیست](#fa-check) بروید.
 
-Caddy (Upgrade و `X-Forwarded-For` را خودش مدیریت می‌کند):
-```
-panel.example.com {
-    reverse_proxy 127.0.0.1:3000
-}
-```
-Nginx (داخل بلوک `server` با گواهی TLS):
-```nginx
-location / {
-    proxy_pass http://127.0.0.1:3000;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_read_timeout 3600s;
-}
-```
-لینک‌های VLESS/Trojan همیشه روی پورت `443` با TLS ساخته می‌شوند؛ پس دامنه باید روی ۴۴۳ با TLS جواب بدهد.
+<a id="fa-render"></a>
+## Render
+Render فقط یک پورت HTTP را عمومی می‌کند؛ پس **فقط رله‌ی WebSocket (VLESS/Trojan)** کار می‌کند و رله‌ی TCP عمومی ندارید. اگر SOCKS/Shadowsocks مستقیم می‌خواهید از Railway یا VPS استفاده کنید.
 
-### ۳.۳ فایروال
-- پورت `RELAY_PORT` از اینترنت باز است و تنها محافظ آن نام کاربری/رمز است. رمز قوی بگذارید یا فقط Shadowsocks را فعال کنید: `SHARE_PROTOCOLS=ss`.
-- پورت‌های ۸۰ و ۴۴۳ برای reverse proxy باز باشند. پورت ۳۰۰۰ را مستقیم باز نکنید.
+1. **New ← Web Service**، ریپو را وصل کنید، **Runtime: Docker**.
+2. **Health Check Path:** `/healthz`
+3. **Environment:**
+   ```
+   PANEL_USER=admin
+   PANEL_PASSWORD=یک-رمز-طولانی-و-تصادفی
+   SHARE_USERNAME=myuser
+   SHARE_PASSWORD=رمز-اشتراک-طولانی
+   TMPDIR=/data/tmp
+   AUTO_START=1
+   SHARE_AUTO=1
+   ```
+4. **Disks ← Add Disk:** Name دلخواه، **Mount Path:** `/data`، Size مثلاً ۱ GB. Disk فقط روی نمونه‌های پولی است.
+5. دامنه‌ی `*.onrender.com` خودکار از `RENDER_EXTERNAL_HOSTNAME` برداشته می‌شود.
+6. Deploy کنید.
 
-### ۳.۴ بدون compose
+> نمونه‌های رایگان Render بعد از بی‌کاری می‌خوابند و تونل قطع می‌شود؛ برای استفاده‌ی واقعی مناسب نیستند.
+
+<a id="fa-vps"></a>
+## VPS با Docker
+نیاز: Ubuntu/Debian با Docker (BuildKit)، یک دامنه که به IP سرور اشاره کند (رکورد A).
+
+### ۱) اجرای پنل (فقط روی localhost)
 ```bash
+git clone <آدرس-ریپوی-شما> asiri-panel && cd asiri-panel
 docker build -t asiri-panel .
 docker run -d --name asiri-panel --restart unless-stopped \
-  -p 127.0.0.1:3000:3000 -p 1080:1080 \
-  -e PANEL_USER=admin -e PANEL_PASSWORD='رمز-طولانی' \
-  -e AUTO_START=1 -e SHARE_AUTO=1 \
-  -e SHARE_USERNAME=myuser -e SHARE_PASSWORD='رمز-اشتراک-طولانی' \
-  -e RELAY_PORT=1080 -e RELAY_PUBLIC_HOST=YOUR.SERVER.IP.OR.DOMAIN -e RELAY_PUBLIC_PORT=1080 \
+  -p 127.0.0.1:3000:3000 \
+  -p 1080:1080 \
+  -e PANEL_USER=admin \
+  -e PANEL_PASSWORD='یک-رمز-طولانی-و-تصادفی' \
+  -e SHARE_USERNAME=myuser \
+  -e SHARE_PASSWORD='رمز-اشتراک-طولانی' \
+  -e RELAY_PORT=1080 \
+  -e RELAY_PUBLIC_HOST=panel.example.com \
+  -e RELAY_PUBLIC_PORT=1080 \
   -e INBOUND_PUBLIC_HOST=panel.example.com \
+  -e AUTO_START=1 -e SHARE_AUTO=1 \
   -v asiri-data:/data -e TMPDIR=/data/tmp \
   asiri-panel
 ```
-ایمیج برای `amd64` و `arm64` ساخته می‌شود و به BuildKit نیاز دارد (در Docker جدید پیش‌فرض است).
+- پورت ۳۰۰۰ فقط روی `127.0.0.1` باز است و از بیرون با reverse proxy در دسترس می‌شود.
+- `-p 1080:1080` رله‌ی TCP است و باید عمومی باشد. اگر نمی‌خواهید، آن را و `RELAY_*` را حذف کنید.
+- `asiri-data` نام دلخواه Volume و `/data` Mount path است.
 
-## ۴) نسخه‌ی Aether
-در `Dockerfile` نسخه پین است: `ARG AETHER_VERSION=v1.5.0`. checksum آن هنگام بیلد بررسی می‌شود و کارت نصب داخل پنل هم همان نسخه را می‌گیرد.
-- محلی: `docker build --build-arg AETHER_VERSION=vX.Y.Z -t asiri-panel .`
-- Railway: `AETHER_VERSION` را به‌عنوان Variable سرویس اضافه کنید و Redeploy کنید.
-
-## ۵) به‌روزرسانی پنل
-تغییرات را در ریپو push کنید (Railway/Render خودکار دوباره می‌سازند) یا روی VPS `git pull && docker compose up -d --build` بزنید. اگر Volume دارید، تنظیمات تونل می‌ماند؛ با `AUTO_START=1` تونل و با `SHARE_*` لینک‌ها هم همان می‌مانند.
-
-## ۶) اعلان‌ها
-Webhook (`NOTIFY_WEBHOOK_URL`) و/یا تلگرام (`NOTIFY_TELEGRAM_BOT_TOKEN` + `NOTIFY_TELEGRAM_CHAT_ID`). رویدادها: `tunnel_down`، `subscription_changed`، `relay_error`؛ تکرار تا `NOTIFY_COOLDOWN_SEC` ارسال نمی‌شود. پیام `subscription_changed` شامل نام کاربری، رمز و لینک‌هاست؛ فقط به کانال خصوصی بفرستید.
-
-## ۷) بررسی محلی پیش از دپلوی
-```bash
-npm test                 # Node 22+؛ نیازی به نصب وابستگی ندارد
-pnpm install && pnpm typecheck
-docker build -t asiri-panel .
+### ۲) HTTPS با Caddy (ساده‌ترین)
 ```
+panel.example.com {
+    reverse_proxy 127.0.0.1:3000 {
+        header_up X-Real-IP {remote_host}
+    }
+}
+```
+Caddy گواهی را خودکار می‌گیرد و WebSocket را بدون تنظیم اضافه پاس می‌دهد. خط `X-Real-IP` مهم است: پنل IP را برای محدودیت ورود از این هدر می‌خواند و نباید کلاینت بتواند آن را جعل کند.
 
-## ۸) Cloudflare Worker (اختیاری)
-`worker/` یک Worker مستقل برای قرار گرفتن جلوی پنل یا پل WebSocket به TCP است. مقدارهای `[vars]` در `worker/wrangler.toml` ساختگی‌اند و باید قبل از `npx wrangler deploy` عوض شوند. توضیح کامل: README.md ← «Cloudflare Worker».
+### ۲-ب) یا Nginx
+```nginx
+server {
+    listen 443 ssl;
+    server_name panel.example.com;
+    # ssl_certificate / ssl_certificate_key (مثلاً با certbot)
 
-## مشکل دارید؟
-جدول عیب‌یابی در [README.md](README.md#fa-trouble). پرتکرارترین‌ها: `503` (نبودن `PANEL_USER`/`PANEL_PASSWORD`)، `No relay is enabled…` (نه `RELAY_PORT` و نه دامنه‌ی HTTPS)، تغییر لینک‌ها بعد از ری‌استارت (نبودن `SHARE_*`) و ری‌استارت‌های پشت‌سرهم تونل (دامنه‌ی عمومی اشتباه).
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_read_timeout 600s;
+    }
+}
+```
+هدرهای `Upgrade` و `Connection` برای VLESS/Trojan ضروری‌اند. `X-Forwarded-For` را عمداً با `$remote_addr` جایگزین کردیم، نه اضافه، تا قابل جعل نباشد.
+
+### ۳) فایروال
+فقط این‌ها را باز کنید: `22` (SSH)، `80` و `443` (Caddy/Nginx) و `1080` (رله‌ی TCP، اگر استفاده می‌کنید). پورت `3000` را باز نکنید.
+```bash
+ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw allow 1080 && ufw enable
+```
+> Docker قوانین ufw را برای `-p` دور می‌زند. به همین خاطر پنل را با `127.0.0.1:3000:3000` منتشر کردیم.
+
+<a id="fa-worker"></a>
+## Cloudflare Worker (اختیاری)
+> 📖 راهنمای کامل Worker: [worker/README.md](worker/README.md) · راهنمای دپلوی: [worker/README-DEPLOY.md](worker/README-DEPLOY.md)
+
+برای قراردادن دامنه‌ی Cloudflare جلوی پنل: در `worker/wrangler.toml` مقدار `ORIGIN` را آدرس پنل بگذارید، `WS_PATH` را روی مسیری غیر از مسیر مخفی پنل، و بعد `npx wrangler deploy`. سپس در پنل `INBOUND_PUBLIC_HOST` را روی دامنه‌ی Worker بگذارید. جزئیات: [README ← Cloudflare Worker](README.md#fa-worker).
+
+<a id="fa-check"></a>
+## چک‌لیست بعد از دپلوی
+1. `https://دامنه/healthz` بدون رمز باید `ok` بدهد.
+2. `https://دامنه` رمز می‌خواهد؛ با `PANEL_USER` / `PANEL_PASSWORD` وارد شوید.
+3. بنر «Settings and WARP identity will be lost…» **نباید** نمایش داده شود. اگر هست، Volume یا `TMPDIR` درست نیست.
+4. تونل را وصل کنید و منتظر **متصل** بمانید.
+5. «ساخت آدرس عمومی» را بزنید و لینک‌ها را بگیرید.
+6. از ترمینال تست کنید:
+   ```bash
+   curl --socks5-hostname HOST:PORT --proxy-user USER:PASS https://www.cloudflare.com/cdn-cgi/trace
+   ```
+7. **تست ماندگاری:** سرویس را ری‌استارت کنید. تنظیمات تونل باید مانده باشد و با `AUTO_START=1` تونل خودش وصل شود. لینک‌ها هم باید همان قبلی باشند (به شرط ست‌بودن `SHARE_*`).
+
+<a id="fa-update"></a>
+## به‌روزرسانی و پشتیبان‌گیری
+- **Railway/Render:** با push به ریپو خودکار دپلوی می‌شود. Volume دست‌نخورده می‌ماند.
+- **VPS:**
+  ```bash
+  cd asiri-panel && git pull
+  docker build -t asiri-panel .
+  docker rm -f asiri-panel
+  # دوباره همان دستور docker run بالا را اجرا کنید (Volume همان asiri-data است)
+  ```
+- **نسخه‌ی Aether:** پین‌شده است (`v1.5.0`). برای نسخه‌ی دیگر: `docker build --build-arg AETHER_VERSION=vX.Y.Z -t asiri-panel .`
+- **پشتیبان:** فقط پوشه‌ی `/data/tmp/.aether` ارزش دارد (تنظیمات و هویت WARP):
+  ```bash
+  docker run --rm -v asiri-data:/data -v "$PWD":/backup debian:bookworm-slim \
+    tar czf /backup/asiri-data.tgz -C /data .
+  ```
+
+<a id="fa-trouble"></a>
+## مشکلات رایج
+
+| مشکل | راه‌حل |
+| --- | --- |
+| بیلد با `unsupported arch` شکست می‌خورد | از BuildKit استفاده کنید (`docker buildx build`) |
+| `503` | `PANEL_USER` و `PANEL_PASSWORD` را بگذارید |
+| بنر ماندگاری می‌ماند | Mount path و `TMPDIR` را مطابق [README](README.md#fa-persist) بررسی کنید؛ `TMPDIR` باید داخل Mount path باشد |
+| لینک‌ها بعد از دپلوی عوض می‌شوند | `SHARE_USERNAME` و `SHARE_PASSWORD` را در Variables بگذارید |
+| `No relay is enabled…` | `RELAY_PORT` یا دامنه‌ی HTTPS پنل را تنظیم کنید |
+| رله‌ی TCP «منتظر آدرس عمومی» | TCP Proxy را در Railway فعال کنید یا `RELAY_PUBLIC_HOST/PORT` بدهید |
+| رله‌ی TCP «خطا» | `RELAY_PORT` برابر `PORT` یا `PORT+1` است یا اشغال است |
+| تونل مدام ری‌استارت می‌شود | `INBOUND_PUBLIC_HOST` را بررسی کنید و هدر Upgrade را در reverse proxy پاس بدهید، یا `INBOUND_WS=off` |
+| VLESS/Trojan وصل نمی‌شود | اشتراک روشن باشد؛ دامنه روی ۴۴۳ با TLS باشد؛ هدر Upgrade پاس شود |
 
 ---
 
 <a id="en"></a>
 # 🇬🇧 English
 
+## Contents
+1. [Before you start](#en-before)
+2. [Railway](#en-railway)
+3. [Render](#en-render)
+4. [VPS with Docker](#en-vps)
+5. [Cloudflare Worker (optional)](#en-worker)
+6. [Post-deploy checklist](#en-check)
+7. [Updating and backups](#en-update)
+8. [Common problems](#en-trouble)
+
+<a id="en-before"></a>
 ## Before you start
+- Have the repo on GitHub (a fork or your own). The image is built from the `Dockerfile` at the repo root.
+- **At least one relay:** the TCP relay (`RELAY_PORT`) or the panel's HTTPS domain for VLESS/Trojan. Railway and Render provide the HTTPS domain automatically.
+- **A Volume** (mount path `/data`) and `TMPDIR=/data/tmp`, otherwise settings and the WARP identity are wiped on every deploy. Details: [README ← Persistence and Volumes](README.md#en-persist).
+- **Set the secrets yourself:** long random `PANEL_PASSWORD` and `SHARE_PASSWORD`, and `SHARE_USERNAME`. Share credentials are not stored on the volume; if you don't set them, links change on every restart.
 
-**Prerequisites:** the repo on your own GitHub (fork or push) and one of: a Railway account, a Render account (**paid** plan) or a VPS with Docker.
+Platform comparison:
 
-**Which platform?**
-
-| | Railway | Render | VPS with Docker |
+| | Railway | Render | VPS |
 | --- | --- | --- | --- |
-| TCP relay (stable `host:port`) | ✅ via TCP Proxy | ❌ none | ✅ via `RELAY_PORT` |
-| WebSocket relay (VLESS/Trojan on 443) | ✅ automatic domain | ✅ automatic domain | ✅ with a domain and reverse proxy |
-| Persistence | Volume | Disk (paid) | Docker volume |
-| Cost | per plan | the free plan sleeps and drops the tunnel | server cost |
+| TCP relay (SOCKS/SS/HTTP) | ✅ via TCP Proxy | ❌ only the HTTP port is public | ✅ |
+| WebSocket relay (VLESS/Trojan) | ✅ | ✅ | ✅ (via reverse proxy) |
+| Automatic HTTPS | ✅ | ✅ | via Caddy/Nginx |
+| Volume | ✅ | ✅ (paid instance) | ✅ |
 
-**Three decisions before deploying:**
-1. Create **two long random passwords**: one for the panel login (`PANEL_PASSWORD`) and one for sharing (`SHARE_PASSWORD`).
-2. **Always set `SHARE_USERNAME` and `SHARE_PASSWORD` as environment variables.** Share settings are not saved to disk; without these two, a restart generates a new random username and password and every link (including VLESS/Trojan) stops working. Username 3–32 and password 8–64 chars from `A-Za-z0-9._~-`.
-3. **Add a volume** and point `TMPDIR` at it so the tunnel settings, last known-good config and the "Best config" result survive restarts.
+<a id="en-railway"></a>
+## Railway
 
-## 1) Railway — step by step
+### 1) Create the service
+1. **New Project ← Deploy from GitHub repo** and pick the repo. Railway finds and builds the `Dockerfile` itself.
+2. **Settings ← Networking ← Generate Domain** to get a `*.up.railway.app` domain (the target port is the service's `PORT`; default `3000`).
+3. **Settings ← Healthcheck Path:** `/healthz` (unauthenticated).
 
-> Menu names may differ slightly as Railway evolves.
+### 2) Volume
+1. On the project canvas choose **Add Volume** (Ctrl/⌘+K or right-click) and select the **panel service**.
+2. **Mount path:** `/data` (the volume name doesn't matter).
 
-### 1.1 Service
-1. **New Project → Deploy from GitHub repo**, pick the repo. The root `Dockerfile` is auto-detected.
-2. **Do not override** the Start Command; the image runs `server.mjs` (`next start` plus the WebSocket hook).
-3. In **Variables** set:
-
-| Variable | Required? | Value |
-| --- | --- | --- |
-| `PANEL_USER`, `PANEL_PASSWORD` | ✅ | panel login (the panel returns `503` without them) |
-| `SHARE_USERNAME`, `SHARE_PASSWORD` | ✅ strongly recommended | for stable links (see above) |
-| `TMPDIR` | ✅ recommended | `/data/tmp` (after adding the volume) |
-| `AUTO_START` | recommended | `1` — reconnect the tunnel after every restart |
-| `SHARE_AUTO` | recommended | `1` — start the relays when the tunnel connects |
-| `RELAY_PORT` | for the TCP relay | `1080` (any free port except `PORT` and `PORT+1`; also avoid `1819` and `1820`) |
-| `SHARE_PROTOCOLS` | optional | `socks,http,ss` (default). Encrypted only: `ss` |
-| `INBOUND_WS` | optional | `vless,trojan` (default), one of them, or `off` |
-| `INBOUND_WS_PATH` | optional | custom WebSocket path, e.g. `/my-secret-path` |
-| `NOTIFY_*` | optional | see the notifications section of `.env.example` |
-
-4. **Settings → Networking → Generate Domain** for the panel. The domain's target port must equal the service `PORT`; Railway injects `PORT` itself (the image default is 3000). Once the domain exists Railway injects `RAILWAY_PUBLIC_DOMAIN`, which the panel uses for the VLESS/Trojan links.
-
-### 1.2 Volume (persistence)
-**Settings → Volumes → New Volume** mounted at `/data`, then set `TMPDIR=/data/tmp`. Without it each restart wipes the following and the panel shows `Settings and WARP identity will be lost on restart.`:
-- tunnel settings, the last known-good config and the "Best config" winner (`tunnel-config.json`)
-- the WARP identity
-
-> The share username and password are always read from environment variables only and are never saved to the volume.
-
-### 1.3 TCP Proxy (stable `host:port`)
-1. **Settings → Networking → TCP Proxy → Add**.
-2. Set "Application port" to your `RELAY_PORT` (e.g. `1080`).
-3. Railway injects these variables itself and the panel reads them; nothing to copy: `RAILWAY_TCP_PROXY_DOMAIN`, `RAILWAY_TCP_PROXY_PORT`, `RAILWAY_TCP_APPLICATION_PORT`.
-4. **Redeploy**.
-5. If `RELAY_PORT` is unset but a TCP Proxy exists, `RAILWAY_TCP_APPLICATION_PORT` is used.
-
-### 1.4 Use the panel
-1. Open the Railway domain and sign in.
-2. Connect the tunnel (`AUTO_START=1` does it for you).
-3. Press "Create public address" (automatic with `SHARE_AUTO=1`).
-4. In the share card, take the links of the TCP relay (`ASiRi-Railway`) and the panel domain (VLESS/Trojan) for your client.
-
-### 1.5 VLESS / Trojan over WebSocket
-No extra setup: the panel's Railway domain carries the WebSocket upgrade through the edge's TLS on 443. Turn sharing on and take the `vless://` or `trojan://` link. TCP only (no UDP, no mux).
-
-### 1.6 Post-deploy checklist
-- [ ] `https://<domain>/healthz` returns `ok` (no auth)
-- [ ] Panel login works
-- [ ] The persistence banner is gone
-- [ ] Status is **connected** and the exit IP is shown
-- [ ] The TCP relay is **active** (not "pending" or "error")
-- [ ] You tried a link in a client
-- [ ] After a Redeploy the tunnel came back on its own and the links did not change
-
-## 2) Render
-
-1. **New → Web Service**, runtime **Docker**, connect the repo.
-2. Use a **paid** instance type (the free plan sleeps and drops the tunnel).
-3. Environment: `PANEL_USER`, `PANEL_PASSWORD`, `SHARE_USERNAME`, `SHARE_PASSWORD`, `TMPDIR=/data/tmp` and, if wanted, `AUTO_START=1`, `SHARE_AUTO=1`.
-4. **Advanced → Health Check Path:** `/healthz`.
-5. Add a **Disk** at `/data` (for persistence; needs a paid plan).
-6. The `*.onrender.com` domain is picked up automatically for VLESS/Trojan from `RENDER_EXTERNAL_HOSTNAME`. If you attached a custom domain, set `INBOUND_PUBLIC_HOST` to it.
-
-> Render has **no TCP Proxy.** On Render only the WebSocket relay (VLESS/Trojan) works and `RELAY_PORT` is of no use. Run the TCP relay on Railway or your own VPS.
-
-## 3) VPS with Docker
-
-### 3.1 Files
-Create a `.env` next to the repo (and do not commit it):
-```bash
-PANEL_PASSWORD=a-long-panel-password
+### 3) Variables
+```
+PANEL_USER=admin
+PANEL_PASSWORD=a-long-random-password
 SHARE_USERNAME=myuser
 SHARE_PASSWORD=a-long-share-password
-RELAY_PUBLIC_HOST=YOUR.SERVER.IP.OR.DOMAIN
-PANEL_DOMAIN=panel.example.com
+TMPDIR=/data/tmp
+AUTO_START=1
+SHARE_AUTO=1
 ```
-and `docker-compose.yml`:
-```yaml
-services:
-  asiri-panel:
-    build: .
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:3000:3000"   # panel; reachable only through the reverse proxy
-      - "1080:1080"             # TCP relay (when using RELAY_PORT)
-    environment:
-      PANEL_USER: admin
-      PANEL_PASSWORD: ${PANEL_PASSWORD}
-      TMPDIR: /data/tmp
-      AUTO_START: "1"
-      SHARE_AUTO: "1"
-      SHARE_USERNAME: ${SHARE_USERNAME}
-      SHARE_PASSWORD: ${SHARE_PASSWORD}
-      RELAY_PORT: "1080"
-      RELAY_PUBLIC_HOST: ${RELAY_PUBLIC_HOST}   # required outside Railway
-      RELAY_PUBLIC_PORT: "1080"
-      INBOUND_PUBLIC_HOST: ${PANEL_DOMAIN}      # your HTTPS domain for VLESS/Trojan
-    volumes:
-      - asiri-data:/data
-volumes:
-  asiri-data:
-```
-Run: `docker compose up -d --build`
+Railway sets `RAILWAY_PUBLIC_DOMAIN` and `RAILWAY_VOLUME_MOUNT_PATH` itself. The automatic public domain is used for VLESS/Trojan, so `INBOUND_PUBLIC_HOST` is not needed.
 
-- If the panel password contains `$`, write it as `$$` in `.env`.
-- Don't need the TCP relay? Remove the `1080` line and the `RELAY_*` variables.
-- No HTTPS domain? Remove `INBOUND_PUBLIC_HOST` and add `INBOUND_WS: "off"` to keep the WebSocket relay off. A wrong domain, or one that does not reach this panel, makes the public health check fail and the watchdog keep restarting the tunnel. Then reach the panel through an SSH tunnel: `ssh -L 3000:127.0.0.1:3000 user@server` and open `http://localhost:3000`.
+### 4) TCP relay (optional, for SOCKS/Shadowsocks/HTTP)
+1. **Settings ← Networking ← TCP Proxy**: enter the **Application port**, e.g. `1080`.
+2. Add the variable `RELAY_PORT=1080` (**the same number**; must not be `PORT` or `PORT+1`).
+3. Railway gives you a domain and a random port (like `xyz.proxy.rlwy.net:12345`); the panel reads them from `RAILWAY_TCP_PROXY_DOMAIN` and `RAILWAY_TCP_PROXY_PORT` automatically.
 
-### 3.2 HTTPS for the panel and VLESS/Trojan
-The reverse proxy must forward the **WebSocket Upgrade** to port 3000, and the panel uses `X-Real-IP` or `X-Forwarded-For` for its login rate limit.
+### 5) Redeploy
+After creating the volume and setting the variables, redeploy, then follow the [checklist](#en-check).
 
-Caddy (handles Upgrade and `X-Forwarded-For` itself):
-```
-panel.example.com {
-    reverse_proxy 127.0.0.1:3000
-}
-```
-Nginx (inside a `server` block with a TLS certificate):
-```nginx
-location / {
-    proxy_pass http://127.0.0.1:3000;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_read_timeout 3600s;
-}
-```
-VLESS/Trojan links are always generated on port `443` with TLS, so the domain must answer on 443 with TLS.
+<a id="en-render"></a>
+## Render
+Render exposes only one HTTP port publicly, so **only the WebSocket relay (VLESS/Trojan)** works and there is no public TCP relay. If you want plain SOCKS/Shadowsocks use Railway or a VPS.
 
-### 3.3 Firewall
-- `RELAY_PORT` is reachable from the internet and the username/password is its only protection. Use strong credentials or enable only Shadowsocks: `SHARE_PROTOCOLS=ss`.
-- Keep 80 and 443 open for the reverse proxy. Do not expose port 3000 directly.
+1. **New ← Web Service**, connect the repo, **Runtime: Docker**.
+2. **Health Check Path:** `/healthz`
+3. **Environment:**
+   ```
+   PANEL_USER=admin
+   PANEL_PASSWORD=a-long-random-password
+   SHARE_USERNAME=myuser
+   SHARE_PASSWORD=a-long-share-password
+   TMPDIR=/data/tmp
+   AUTO_START=1
+   SHARE_AUTO=1
+   ```
+4. **Disks ← Add Disk:** any Name, **Mount Path:** `/data`, Size e.g. 1 GB. Disks are only available on paid instances.
+5. The `*.onrender.com` domain is picked up automatically from `RENDER_EXTERNAL_HOSTNAME`.
+6. Deploy.
 
-### 3.4 Without compose
+> Free Render instances spin down when idle and cut the tunnel; they are not suitable for real use.
+
+<a id="en-vps"></a>
+## VPS with Docker
+Requirements: Ubuntu/Debian with Docker (BuildKit) and a domain pointing at the server's IP (A record).
+
+### 1) Run the panel (localhost only)
 ```bash
+git clone <your-repo-url> asiri-panel && cd asiri-panel
 docker build -t asiri-panel .
 docker run -d --name asiri-panel --restart unless-stopped \
-  -p 127.0.0.1:3000:3000 -p 1080:1080 \
-  -e PANEL_USER=admin -e PANEL_PASSWORD='a-long-password' \
-  -e AUTO_START=1 -e SHARE_AUTO=1 \
-  -e SHARE_USERNAME=myuser -e SHARE_PASSWORD='a-long-share-password' \
-  -e RELAY_PORT=1080 -e RELAY_PUBLIC_HOST=YOUR.SERVER.IP.OR.DOMAIN -e RELAY_PUBLIC_PORT=1080 \
+  -p 127.0.0.1:3000:3000 \
+  -p 1080:1080 \
+  -e PANEL_USER=admin \
+  -e PANEL_PASSWORD='a-long-random-password' \
+  -e SHARE_USERNAME=myuser \
+  -e SHARE_PASSWORD='a-long-share-password' \
+  -e RELAY_PORT=1080 \
+  -e RELAY_PUBLIC_HOST=panel.example.com \
+  -e RELAY_PUBLIC_PORT=1080 \
   -e INBOUND_PUBLIC_HOST=panel.example.com \
+  -e AUTO_START=1 -e SHARE_AUTO=1 \
   -v asiri-data:/data -e TMPDIR=/data/tmp \
   asiri-panel
 ```
-The image builds for `amd64` and `arm64` and needs BuildKit (the default in current Docker).
+- Port 3000 is published on `127.0.0.1` only; the reverse proxy exposes it.
+- `-p 1080:1080` is the TCP relay and must be public. If you don't want it, drop it together with the `RELAY_*` variables.
+- `asiri-data` is any volume name and `/data` the mount path.
 
-## 4) Aether version
-The `Dockerfile` pins it: `ARG AETHER_VERSION=v1.5.0`. The checksum is verified at build time, and the in-panel install card fetches the same version.
-- Locally: `docker build --build-arg AETHER_VERSION=vX.Y.Z -t asiri-panel .`
-- Railway: add `AETHER_VERSION` as a service Variable and redeploy.
-
-## 5) Updating the panel
-Push your changes to the repo (Railway/Render rebuild automatically), or on a VPS run `git pull && docker compose up -d --build`. With a volume the tunnel settings survive; with `AUTO_START=1` the tunnel comes back, and with `SHARE_*` set the links stay the same.
-
-## 6) Notifications
-Webhook (`NOTIFY_WEBHOOK_URL`) and/or Telegram (`NOTIFY_TELEGRAM_BOT_TOKEN` + `NOTIFY_TELEGRAM_CHAT_ID`). Events: `tunnel_down`, `subscription_changed`, `relay_error`; repeats are suppressed for `NOTIFY_COOLDOWN_SEC`. `subscription_changed` messages contain the username, password and links; send them to private channels only.
-
-## 7) Local checks before deploying
-```bash
-npm test                 # Node 22+; no dependencies to install
-pnpm install && pnpm typecheck
-docker build -t asiri-panel .
+### 2) HTTPS with Caddy (simplest)
 ```
+panel.example.com {
+    reverse_proxy 127.0.0.1:3000 {
+        header_up X-Real-IP {remote_host}
+    }
+}
+```
+Caddy obtains the certificate automatically and forwards WebSockets with no extra setup. The `X-Real-IP` line matters: the panel reads the client IP for login rate-limiting from that header, and a client must not be able to forge it.
 
-## 8) Cloudflare Worker (optional)
-`worker/` is a standalone Worker meant to sit in front of the panel or to bridge a WebSocket to TCP. The `[vars]` in `worker/wrangler.toml` are mock values and must be replaced before `npx wrangler deploy`. Full description: README.md → "Cloudflare Worker".
+### 2b) Or Nginx
+```nginx
+server {
+    listen 443 ssl;
+    server_name panel.example.com;
+    # ssl_certificate / ssl_certificate_key (e.g. via certbot)
 
-## Having trouble?
-See the troubleshooting table in [README.md](README.md#en-trouble). The most common ones: `503` (missing `PANEL_USER`/`PANEL_PASSWORD`), `No relay is enabled…` (neither `RELAY_PORT` nor an HTTPS domain), links changing after a restart (missing `SHARE_*`) and repeated tunnel restarts (wrong public domain).
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_read_timeout 600s;
+    }
+}
+```
+The `Upgrade` and `Connection` headers are required for VLESS/Trojan. `X-Forwarded-For` is deliberately replaced with `$remote_addr`, not appended to, so it can't be forged.
+
+### 3) Firewall
+Open only: `22` (SSH), `80` and `443` (Caddy/Nginx) and `1080` (TCP relay, if used). Do not open `3000`.
+```bash
+ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw allow 1080 && ufw enable
+```
+> Docker bypasses ufw rules for `-p`; that's why the panel is published as `127.0.0.1:3000:3000`.
+
+<a id="en-worker"></a>
+## Cloudflare Worker (optional)
+> 📖 Full Worker docs: [worker/README.md](worker/README.md) · Deploy guide: [worker/README-DEPLOY.md](worker/README-DEPLOY.md)
+
+To put a Cloudflare domain in front of the panel: set `ORIGIN` in `worker/wrangler.toml` to the panel URL, `WS_PATH` to a path different from the panel's secret path, then `npx wrangler deploy`. Afterwards set `INBOUND_PUBLIC_HOST` in the panel to the Worker domain. Details: [README ← Cloudflare Worker](README.md#en-worker).
+
+<a id="en-check"></a>
+## Post-deploy checklist
+1. `https://your-domain/healthz` returns `ok` without a password.
+2. `https://your-domain` asks for a login; sign in with `PANEL_USER` / `PANEL_PASSWORD`.
+3. The "Settings and WARP identity will be lost…" banner must **not** appear. If it does, the volume or `TMPDIR` is wrong.
+4. Connect the tunnel and wait for **connected**.
+5. Press "Create public address" and grab the links.
+6. Test from a terminal:
+   ```bash
+   curl --socks5-hostname HOST:PORT --proxy-user USER:PASS https://www.cloudflare.com/cdn-cgi/trace
+   ```
+7. **Persistence test:** restart the service. The tunnel settings must still be there and, with `AUTO_START=1`, the tunnel reconnects by itself. The links must be unchanged too (provided `SHARE_*` are set).
+
+<a id="en-update"></a>
+## Updating and backups
+- **Railway/Render:** pushing to the repo redeploys automatically. The volume stays untouched.
+- **VPS:**
+  ```bash
+  cd asiri-panel && git pull
+  docker build -t asiri-panel .
+  docker rm -f asiri-panel
+  # re-run the same docker run command from above (same asiri-data volume)
+  ```
+- **Aether version:** pinned (`v1.5.0`). For another one: `docker build --build-arg AETHER_VERSION=vX.Y.Z -t asiri-panel .`
+- **Backup:** only `/data/tmp/.aether` matters (settings and WARP identity):
+  ```bash
+  docker run --rm -v asiri-data:/data -v "$PWD":/backup debian:bookworm-slim \
+    tar czf /backup/asiri-data.tgz -C /data .
+  ```
+
+<a id="en-trouble"></a>
+## Common problems
+
+| Problem | Fix |
+| --- | --- |
+| Build fails with `unsupported arch` | use BuildKit (`docker buildx build`) |
+| `503` | set `PANEL_USER` and `PANEL_PASSWORD` |
+| Persistence banner stays | check the mount path and `TMPDIR` per the [README](README.md#en-persist); `TMPDIR` must be inside the mount path |
+| Links change after a deploy | set `SHARE_USERNAME` and `SHARE_PASSWORD` in the variables |
+| `No relay is enabled…` | set `RELAY_PORT` or the panel's HTTPS domain |
+| TCP relay "pending" | enable TCP Proxy on Railway or set `RELAY_PUBLIC_HOST/PORT` |
+| TCP relay "error" | `RELAY_PORT` equals `PORT` or `PORT+1`, or is in use |
+| Tunnel keeps restarting | check `INBOUND_PUBLIC_HOST` and forward the Upgrade header in the reverse proxy, or set `INBOUND_WS=off` |
+| VLESS/Trojan won't connect | sharing must be on; the domain must be on 443 with TLS; the Upgrade header must pass |
