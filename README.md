@@ -4,6 +4,9 @@
 
 > ⚠️ پروژه‌ی **غیررسمی** است و به CluvexStudio (سازندگان Aether) وابسته نیست. ASiRi panel فقط یک رابط وب برای اجرا و مدیریت تونل [Aether](https://github.com/CluvexStudio/Aether) است و خود Aether را دانلود و اجرا می‌کند.
 > ⚠️ **Unofficial** and not affiliated with CluvexStudio (the authors of Aether). ASiRi panel is only a web interface that runs and manages the [Aether](https://github.com/CluvexStudio/Aether) tunnel; it downloads and launches Aether itself.
+>
+> 📚 این پروژه بیشتر جنبه‌ی **آموزشی** دارد و برای شناخت بهتر شبکه و امنیت ساخته شده است. استفاده از آن برخلاف قوانین کشور یا محل زندگی‌تان **بر عهده‌ی خود شخص** است و نویسنده هیچ مسئولیتی در این باره ندارد.
+> 📚 This project is mainly **educational**, built to help people better understand networking and security. Any use that violates the laws that apply to you is **solely the user's own responsibility**, and the author accepts no liability for it.
 
 ---
 
