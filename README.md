@@ -75,6 +75,13 @@
 | `1820` | پراکسی HTTP اختیاری Aether (پورت SOCKS + ۱) | فقط `127.0.0.1` |
 | تصادفی (یا `GATEWAY_PORT`) | gateway داخلی | فقط `127.0.0.1` |
 
+### تصاویر معرفی
+<p align="center">
+  <img src="pic/IMG_3758.JPG" alt="معماری و مسیر حرکت داده‌ها در ASiRi Panel" width="420">
+  <img src="pic/IMG_3759.JPG" alt="ویژگی‌های هوشمند و پیشرفته ASiRi Panel" width="420">
+</p>
+<p align="center"><sub>چپ: معماری و مسیر حرکت داده‌ها · راست: ویژگی‌های هوشمند و پیشرفته (بهترین تنظیمات، Watchdog، مدیریت تنظیمات و اعلان خطا)</sub></p>
+
 ### معماری موتور Aether
 [Aether](https://github.com/CluvexStudio/Aether) یک هسته‌ی Rust در فضای کاربر است که تونل رمزنگاری‌شده را به لبه‌ی Cloudflare می‌زند و یک پراکسی SOCKS5 محلی می‌دهد.
 ```
@@ -524,6 +531,13 @@ client ──► relays ─────┤                               │
 | `1819` | local Aether SOCKS5 (changeable in the panel) | `127.0.0.1` only |
 | `1820` | optional Aether HTTP proxy (SOCKS port + 1) | `127.0.0.1` only |
 | random (or `GATEWAY_PORT`) | internal gateway | `127.0.0.1` only |
+
+### Overview images
+<p align="center">
+  <img src="pic/IMG_3758.JPG" alt="ASiRi Panel architecture and data flow" width="420">
+  <img src="pic/IMG_3759.JPG" alt="ASiRi Panel smart and advanced features" width="420">
+</p>
+<p align="center"><sub>Left: architecture and data flow · Right: smart and advanced features (best config, watchdog, settings management and error notifications). The images are in Persian.</sub></p>
 
 ### Aether engine architecture
 [Aether](https://github.com/CluvexStudio/Aether) is a userspace Rust core that builds an encrypted tunnel to the Cloudflare edge and exposes a local SOCKS5 proxy.
