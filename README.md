@@ -75,6 +75,43 @@
 | `1820` | پراکسی HTTP اختیاری Aether (پورت SOCKS + ۱) | فقط `127.0.0.1` |
 | تصادفی (یا `GATEWAY_PORT`) | gateway داخلی | فقط `127.0.0.1` |
 
+### معماری موتور Aether
+[Aether](https://github.com/CluvexStudio/Aether) یک هسته‌ی Rust در فضای کاربر است که تونل رمزنگاری‌شده را به لبه‌ی Cloudflare می‌زند و یک پراکسی SOCKS5 محلی می‌دهد.
+```
+برنامه‌ها (مرورگر، تلگرام، curl، …)
+          │  SOCKS5 (بدون رمز)
+          ▼
+   127.0.0.1:1819  ◄── --bind / AETHER_SOCKS
+          │
+          ▼
+   هسته‌ی Aether (Rust، userspace)
+   ├─ اسکنر: turbo | balanced | thorough | stealth | ironclad
+   ├─ noize: مبهم‌سازی شروع اتصال
+   ├─ اعتبارسنجی داده: gateway فقط بعد از عبور داده‌ی واقعی پذیرفته می‌شود
+   └─ اتصال مجدد خودکار + quick-reconnect به آخرین gateway سالم
+          │
+   ┌──────┼───────────────┐
+   ▼      ▼               ▼
+ MASQUE  WireGuard       gool
+ h3: QUIC/UDP   UDP    WireGuard داخل WireGuard
+ h2: TLS/TCP           (hop بیرونی ← hop داخلی)
+   └──────┼───────────────┘
+          ▼
+   gateway لبه‌ی Cloudflare (با اسکن پیدا می‌شود)
+          ▼
+        اینترنت
+```
+
+| پورت / مسیر | کاربرد | دسترسی |
+| --- | --- | --- |
+| `1819` (TCP) | SOCKS5 محلی، **بدون رمز**؛ با `--bind` یا `AETHER_SOCKS` عوض می‌شود | فقط `127.0.0.1` |
+| پورت SOCKS + ۱ (اختیاری) | پراکسی HTTP (`--http-proxy`)؛ پنل آن را روی `1820` باز می‌کند | فقط `127.0.0.1` |
+| پورت gateway | با اسکن انتخاب می‌شود و تابع شبکه است. مثال‌های مستندات Aether: `443` (MASQUE) و `2408` (WireGuard/gool) | خروجی به Cloudflare |
+| `/data` (فقط Docker خود Aether) | هویت WARP و آخرین gateway سالم (`*-lastconn.toml`) | Volume |
+
+- MASQUE روی h3 از **UDP** (QUIC) و روی h2 از **TCP** (TLS) استفاده می‌کند. اگر شبکه UDP را می‌بندد یا کند می‌کند، `h2` را انتخاب کنید.
+- پراکسی SOCKS5 خود Aether احراز هویت ندارد؛ در ASiRi panel همین پورت فقط به gateway داخلی پنل (با نام کاربری/رمز) وصل است و نباید مستقیم به اینترنت باز شود.
+
 <a id="fa-quick"></a>
 ## شروع سریع
 برای امتحان روی کامپیوتر یا سرور خودتان (نیازمند Docker با BuildKit، که در نسخه‌های جدید پیش‌فرض است):
@@ -487,6 +524,43 @@ client ──► relays ─────┤                               │
 | `1819` | local Aether SOCKS5 (changeable in the panel) | `127.0.0.1` only |
 | `1820` | optional Aether HTTP proxy (SOCKS port + 1) | `127.0.0.1` only |
 | random (or `GATEWAY_PORT`) | internal gateway | `127.0.0.1` only |
+
+### Aether engine architecture
+[Aether](https://github.com/CluvexStudio/Aether) is a userspace Rust core that builds an encrypted tunnel to the Cloudflare edge and exposes a local SOCKS5 proxy.
+```
+apps (browser, Telegram, curl, …)
+          │  SOCKS5 (no auth)
+          ▼
+   127.0.0.1:1819  ◄── --bind / AETHER_SOCKS
+          │
+          ▼
+   Aether core (Rust, userspace)
+   ├─ scanner: turbo | balanced | thorough | stealth | ironclad
+   ├─ noize: obfuscates the start of the connection
+   ├─ data-plane validation: a gateway is trusted only after real data flows
+   └─ auto-reconnect + quick-reconnect to the last known-good gateway
+          │
+   ┌──────┼───────────────┐
+   ▼      ▼               ▼
+ MASQUE  WireGuard       gool
+ h3: QUIC/UDP   UDP    WireGuard inside WireGuard
+ h2: TLS/TCP           (outer hop ← inner hop)
+   └──────┼───────────────┘
+          ▼
+   Cloudflare edge gateway (found by scanning)
+          ▼
+       internet
+```
+
+| Port / path | Purpose | Exposure |
+| --- | --- | --- |
+| `1819` (TCP) | local SOCKS5, **no authentication**; changed with `--bind` or `AETHER_SOCKS` | `127.0.0.1` only |
+| SOCKS port + 1 (optional) | HTTP proxy (`--http-proxy`); the panel opens it on `1820` | `127.0.0.1` only |
+| gateway port | chosen by the scan and network-dependent. Examples from Aether's docs: `443` (MASQUE) and `2408` (WireGuard/gool) | outbound to Cloudflare |
+| `/data` (Aether's own Docker image only) | WARP identity and the last known-good gateway (`*-lastconn.toml`) | Volume |
+
+- MASQUE uses **UDP** (QUIC) on h3 and **TCP** (TLS) on h2. If the network blocks or throttles UDP, choose `h2`.
+- Aether's SOCKS5 proxy has no authentication; in ASiRi panel that port is reached only by the panel's internal gateway (which adds the username/password) and must never be exposed directly to the internet.
 
 <a id="en-quick"></a>
 ## Quick start
